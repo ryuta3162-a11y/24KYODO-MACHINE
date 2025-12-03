@@ -66,10 +66,9 @@
     body {
       background-color: #FDFDFD;
       color: #111;
-      overflow-x: hidden; /* 横スクロール防止 */
+      overflow-x: hidden;
     }
 
-    /* --- 背景のテックグリッド装飾 --- */
     .bg-tech-grid {
       background-size: 40px 40px;
       background-image:
@@ -78,11 +77,9 @@
       mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
     }
 
-    /* --- カットコーナー（角落ち）カードの形状 --- */
     .cut-corner-card {
       position: relative;
       background: #FFFFFF;
-      /* 角を切り落とすクリップパス */
       clip-path: polygon(
         10px 0, 100% 0, 
         100% calc(100% - 10px), calc(100% - 10px) 100%, 
@@ -92,7 +89,6 @@
       border: 0; 
     }
 
-    /* 枠線を表現するためのラッパー */
     .card-border-wrapper {
       filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));
       transition: filter 0.3s ease;
@@ -101,7 +97,6 @@
       filter: drop-shadow(0 10px 15px rgba(229, 9, 20, 0.15));
     }
     
-    /* カードの枠線 */
     .card-container {
       background: #E2E8F0; 
       padding: 1px; 
@@ -116,7 +111,6 @@
       background: #E50914; 
     }
 
-    /* --- スキャンライン・エフェクト --- */
     .scan-line {
       position: absolute;
       top: 0;
@@ -135,7 +129,6 @@
       animation: scan 1.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* --- 装飾パーツ --- */
     .deco-br {
       position: absolute;
       bottom: 0;
@@ -152,7 +145,6 @@
       transform: scale(1.2);
     }
 
-    /* タブ切り替えアニメーション */
     .tab-content {
       display: none;
     }
@@ -160,21 +152,43 @@
       display: block;
     }
 
-    /* ユーティリティ */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* ネオンラインの強制スタイル */
     .neon-line {
       box-shadow: 0 0 5px #E50914, 0 0 15px #E50914, 0 0 30px #E50914;
+    }
+
+    /* --- スライディングタブ用のスタイル --- */
+    .nav-box-container {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr; /* 3等分 */
+        background: #F8F9FA;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 4px;
+        /* シャドウで浮き上がり感を出す */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* スライドする赤い背景（下線） */
+    .slider-indicator {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 33.333%; /* 3分の1の幅 */
+        height: 3px; /* 下線の高さ */
+        background-color: #E50914;
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        z-index: 10;
+        box-shadow: 0 -2px 10px rgba(229, 9, 20, 0.4);
     }
 </style>
 </head>
 <body class="min-h-screen relative font-sans selection:bg-brand-red selection:text-white">
 
-<!-- 背景: テックグリッド -->
 <div class="fixed inset-0 pointer-events-none bg-tech-grid z-0"></div>
-<!-- 背景: 十字マーク（装飾） -->
 <div class="fixed top-20 left-10 text-gray-200 text-xs font-mono pointer-events-none z-0">+</div>
 <div class="fixed bottom-20 right-10 text-gray-200 text-xs font-mono pointer-events-none z-0">+</div>
 <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[200px] font-black text-gray-50 opacity-[0.02] pointer-events-none select-none z-0">GYM</div>
@@ -189,45 +203,48 @@
         MACHINE LINEUP
     </h1>
     
-    <!-- ネオンライン: 画面幅いっぱい (w-screen) に配置 -->
     <div class="relative w-screen left-1/2 -translate-x-1/2 mt-6">
         <div class="h-1 bg-brand-red neon-line w-full animate-pulse-neon"></div>
     </div>
 </header>
 
 <!-- ナビゲーション -->
-<nav class="sticky top-0 z-50 bg-brand-bg/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
-    <div class="max-w-4xl mx-auto px-2 md:px-6">
-        <div class="flex justify-center overflow-x-auto no-scrollbar py-0 w-full">
-            <div class="flex space-x-2 md:space-x-8 min-w-max px-2">
-                
-                <!-- タブボタン -->
-                <button class="tab-nav-button group relative py-4 px-6 focus:outline-none active" data-target="cardio">
-                    <div class="flex flex-col items-center">
-                        <span class="text-[10px] font-mono text-gray-400 group-[.active]:text-brand-red mb-1">01</span>
-                        <span class="text-sm md:text-base font-bold text-gray-500 group-hover:text-gray-900 group-[.active]:text-gray-900 transition-colors uppercase tracking-wider">Cardio</span>
-                    </div>
-                    <!-- アクティブインジケーター -->
-                    <div class="absolute bottom-0 left-0 w-full h-0.5 bg-brand-red transform scale-x-0 group-[.active]:scale-x-100 transition-transform duration-300"></div>
-                </button>
+<nav class="sticky top-0 z-50 bg-brand-bg/95 backdrop-blur-md border-b border-gray-100 shadow-sm py-4">
+    <div class="max-w-3xl mx-auto px-4">
+        
+        <!-- 
+            3つの項目を1つのボックスに統合。
+            grid-cols-3 で均等に3分割しています。
+        -->
+        <div class="nav-box-container">
+            
+            <!-- スライドする赤いバー -->
+            <div class="slider-indicator" id="nav-slider"></div>
 
-                <button class="tab-nav-button group relative py-4 px-6 focus:outline-none" data-target="resistance">
-                    <div class="flex flex-col items-center">
-                        <span class="text-[10px] font-mono text-gray-400 group-[.active]:text-brand-red mb-1">02</span>
-                        <span class="text-sm md:text-base font-bold text-gray-500 group-hover:text-gray-900 group-[.active]:text-gray-900 transition-colors uppercase tracking-wider">Resistance</span>
-                    </div>
-                    <div class="absolute bottom-0 left-0 w-full h-0.5 bg-brand-red transform scale-x-0 group-[.active]:scale-x-100 transition-transform duration-300"></div>
-                </button>
+            <!-- タブボタン1 -->
+            <button class="tab-nav-button group relative py-3 focus:outline-none w-full text-center z-20" data-index="0" data-target="cardio">
+                <div class="flex flex-col items-center justify-center">
+                    <span class="text-[9px] font-mono font-bold text-gray-400 group-[.active]:text-brand-red mb-0.5 transition-colors">01</span>
+                    <span class="text-xs md:text-sm font-black text-gray-600 group-hover:text-black group-[.active]:text-black transition-colors uppercase tracking-wider">Cardio</span>
+                </div>
+            </button>
 
-                <button class="tab-nav-button group relative py-4 px-6 focus:outline-none" data-target="freeweight">
-                    <div class="flex flex-col items-center">
-                        <span class="text-[10px] font-mono text-gray-400 group-[.active]:text-brand-red mb-1">03</span>
-                        <span class="text-sm md:text-base font-bold text-gray-500 group-hover:text-gray-900 group-[.active]:text-gray-900 transition-colors uppercase tracking-wider">Free Weight</span>
-                    </div>
-                    <div class="absolute bottom-0 left-0 w-full h-0.5 bg-brand-red transform scale-x-0 group-[.active]:scale-x-100 transition-transform duration-300"></div>
-                </button>
+            <!-- タブボタン2 -->
+            <button class="tab-nav-button group relative py-3 focus:outline-none w-full text-center z-20" data-index="1" data-target="resistance">
+                <div class="flex flex-col items-center justify-center">
+                    <span class="text-[9px] font-mono font-bold text-gray-400 group-[.active]:text-brand-red mb-0.5 transition-colors">02</span>
+                    <span class="text-xs md:text-sm font-black text-gray-600 group-hover:text-black group-[.active]:text-black transition-colors uppercase tracking-wider">Resistance</span>
+                </div>
+            </button>
 
-            </div>
+            <!-- タブボタン3 -->
+            <button class="tab-nav-button group relative py-3 focus:outline-none w-full text-center z-20" data-index="2" data-target="freeweight">
+                <div class="flex flex-col items-center justify-center">
+                    <span class="text-[9px] font-mono font-bold text-gray-400 group-[.active]:text-brand-red mb-0.5 transition-colors">03</span>
+                    <span class="text-xs md:text-sm font-black text-gray-600 group-hover:text-black group-[.active]:text-black transition-colors uppercase tracking-wider">Free Weight</span>
+                </div>
+            </button>
+            
         </div>
     </div>
 </nav>
@@ -252,46 +269,37 @@
         </header>
         
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
-            <!-- Cardio 1 -->
+            <!-- Cardio Items -->
             <div class="card-border-wrapper animate-slide-up" style="animation-delay: 0.05s;">
                 <div class="card-container">
                     <div class="cut-corner-card">
-                        <!-- スキャンエフェクト -->
                         <div class="scan-line"></div>
-                        <!-- 装飾 -->
                         <div class="deco-br"></div>
                         <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">CD-01</span>
-                        
                         <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
                             <img alt="トレッドミル" src="cardio_1.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Cardio 2 -->
             <div class="card-border-wrapper animate-slide-up" style="animation-delay: 0.1s;">
                 <div class="card-container">
                     <div class="cut-corner-card">
                         <div class="scan-line"></div>
                         <div class="deco-br"></div>
                         <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">CD-02</span>
-                        
                         <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
                             <img alt="クロストレーナー" src="cardio_2.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Cardio 3 -->
             <div class="card-border-wrapper animate-slide-up" style="animation-delay: 0.15s;">
                 <div class="card-container">
                     <div class="cut-corner-card">
                         <div class="scan-line"></div>
                         <div class="deco-br"></div>
                         <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">CD-03</span>
-                        
                         <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
                             <img alt="エアロバイク" src="cardio_3.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
                         </div>
@@ -319,186 +327,22 @@
 
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
             <!-- Resistance Items Loop -->
-            <!-- Resistance 1 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-01</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン1" src="resistance_1.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Resistance 2 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-02</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン2" src="resistance_2.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 3 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-03</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン3" src="resistance_3.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 4 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-04</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン4" src="resistance_4.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 5 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-05</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン5" src="resistance_5.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 6 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-06</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン6" src="resistance_6.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 7 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-07</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン7" src="resistance_7.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 8 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-08</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン8" src="resistance_8.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 9 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-09</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン9" src="resistance_9.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 10 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-10</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン10" src="resistance_10.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 11 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-11</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン11" src="resistance_11.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 12 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-12</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン12" src="resistance_12.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 13 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-13</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン13" src="resistance_13.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 14 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-14</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン14" src="resistance_14.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- Resistance 15 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-15</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="レジスタンスマシン15" src="resistance_15.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Resistance 1-15 -->
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-01</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン1" src="resistance_1.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-02</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン2" src="resistance_2.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-03</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン3" src="resistance_3.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-04</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン4" src="resistance_4.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-05</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン5" src="resistance_5.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-06</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン6" src="resistance_6.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-07</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン7" src="resistance_7.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-08</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン8" src="resistance_8.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-09</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン9" src="resistance_9.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-10</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン10" src="resistance_10.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-11</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン11" src="resistance_11.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-12</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン12" src="resistance_12.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-13</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン13" src="resistance_13.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-14</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン14" src="resistance_14.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">RS-15</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="レジスタンスマシン15" src="resistance_15.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
         </div>
     </section>
 
@@ -520,150 +364,19 @@
 
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
             <!-- Freeweight Items Loop -->
-             <!-- FW 1 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-01</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト1" src="freeweight_1.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 2 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-02</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト2" src="freeweight_2.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 3 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-03</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト3" src="freeweight_3.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 4 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-04</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト4" src="freeweight_4.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 5 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-05</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト5" src="freeweight_5.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 6 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-06</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト6" src="freeweight_6.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 7 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-07</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト7" src="freeweight_7.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 8 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-08</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト8" src="freeweight_8.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 9 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-09</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト9" src="freeweight_9.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 10 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-10</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト10" src="freeweight_10.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 11 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-11</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト11" src="freeweight_11.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-             <!-- FW 12 -->
-            <div class="card-border-wrapper">
-                <div class="card-container">
-                    <div class="cut-corner-card">
-                        <div class="scan-line"></div><div class="deco-br"></div>
-                        <span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-12</span>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center">
-                            <img alt="フリーウェイト12" src="freeweight_12.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- FW 1-12 -->
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-01</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト1" src="freeweight_1.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-02</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト2" src="freeweight_2.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-03</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト3" src="freeweight_3.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-04</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト4" src="freeweight_4.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-05</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト5" src="freeweight_5.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-06</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト6" src="freeweight_6.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-07</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト7" src="freeweight_7.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-08</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト8" src="freeweight_8.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-09</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト9" src="freeweight_9.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-10</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト10" src="freeweight_10.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-11</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト11" src="freeweight_11.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
+            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card"><div class="scan-line"></div><div class="deco-br"></div><span class="absolute top-2 left-3 font-mono text-[10px] font-bold text-gray-400 z-10 bg-white px-1">FW-12</span><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center"><img alt="フリーウェイト12" src="freeweight_12.jpg" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-110"/></div></div></div></div>
         </div>
     </section>
 
@@ -679,8 +392,9 @@
     // 1. タブ切り替えロジック
     const tabButtons = document.querySelectorAll('.tab-nav-button');
     const tabContents = document.querySelectorAll('.tab-content');
+    const slider = document.getElementById('nav-slider');
 
-    function switchTab(targetId) {
+    function switchTab(targetId, index) {
         // コンテンツの切り替え
         tabContents.forEach(content => {
             content.classList.remove('active');
@@ -697,6 +411,10 @@
                 btn.classList.add('active');
             }
         });
+
+        // スライダーアニメーション
+        // 3等分されているので、index * 100% だけスライド
+        slider.style.transform = `translateX(${index * 100}%)`;
         
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -704,7 +422,8 @@
     tabButtons.forEach(button => {
         button.addEventListener('click', function() {
             const targetId = this.getAttribute('data-target');
-            switchTab(targetId);
+            const index = parseInt(this.getAttribute('data-index'));
+            switchTab(targetId, index);
         });
     });
 
