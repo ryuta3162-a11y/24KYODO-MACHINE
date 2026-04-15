@@ -1,495 +1,324 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>2Fジムエリア マシンラインナップ</title>
-
-<!-- Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-
-<!-- Tailwind CSS -->
-<script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Tailwind Config -->
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          brand: {
-            red: '#FF0F00',      /* 警告色のような赤 */
-            iron: '#1A1B1E',     /* 鉄のようなダークグレー */
-            dark: '#0B0C0E',     /* 背景用ブラックグレー */
-            panel: '#151618',    /* パネル用ガンメタル */
-            text: '#E5E7EB',     /* メインテキスト */
-            muted: '#6B7280',    /* 控えめなグレー */
-            border: '#2D2E32'    /* 金属の継ぎ目のようなボーダー */
-          }
-        },
-        fontFamily: {
-          sans: ['Noto Sans JP', 'sans-serif'],
-          mono: ['JetBrains Mono', 'monospace'],
-        },
-        animation: {
-          'scan': 'scan 2.5s ease-in-out infinite',
-          'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-          'pulse-glitch': 'pulseGlitch 4s infinite',
-        },
-        keyframes: {
-          scan: {
-            '0%': { transform: 'translateY(-100%)', opacity: '0' },
-            '50%': { opacity: '0.5' },
-            '100%': { transform: 'translateY(100%)', opacity: '0' },
-          },
-          slideUp: {
-            '0%': { opacity: '0', transform: 'translateY(20px)' },
-            '100%': { opacity: '1', transform: 'translateY(0)' },
-          },
-          pulseGlitch: {
-            '0%, 100%': { opacity: '1', textShadow: '0 0 2px rgba(255, 15, 0, 0.5)' },
-            '50%': { opacity: '0.8', textShadow: '0 0 10px rgba(255, 15, 0, 0.8), 2px 0 1px rgba(0,0,0,0.8)' },
-            '52%': { opacity: '0.8', textShadow: '0 0 10px rgba(255, 15, 0, 0.8), -2px 0 1px rgba(0,0,0,0.8)' },
-          }
-        },
-        backgroundImage: {
-          'brushed-metal': "repeating-linear-gradient(90deg, transparent 0, transparent 2px, rgba(255,255,255,0.015) 3px, transparent 4px), linear-gradient(180deg, #1a1b1e 0%, #0b0c0e 100%)",
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JOYFIT24経堂 - マシンラインナップ</title>
+    
+    <!-- Google Fonts: Noto Sans JP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        joyred: '#C71744',      /* スクショに合わせたJOYFITレッド */
+                        joybg: '#F9F9F9',       /* 全体背景用のごく薄いグレー */
+                        joypanel: '#FFFFFF',    /* パネル用白 */
+                        joygray: '#E5E7EB',     /* ボーダーや控えめな要素 */
+                        joytext: '#333333',     /* メインテキスト */
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'sans-serif'],
+                    }
+                }
+            }
         }
-      }
-    }
-  }
-</script>
+    </script>
+    <style>
+        /* ベース設定 */
+        html { scroll-behavior: smooth; background-color: #F9F9F9; color: #333333; }
+        body { font-family: 'Noto Sans JP', sans-serif; }
 
-<style>
-    body {
-      background-color: #0B0C0E;
-      color: #E5E7EB;
-      overflow-x: hidden;
-    }
+        /* スクロールバー非表示 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* --- 背景：メタリック＆サイバーパンク --- */
-    .bg-metal-texture {
-      position: fixed;
-      inset: 0;
-      z-index: -2;
-      background-image: 
-        repeating-linear-gradient(90deg, transparent 0, transparent 2px, rgba(255,255,255,0.02) 2px, transparent 4px),
-        repeating-linear-gradient(0deg, transparent 0, transparent 40px, rgba(0,0,0,0.2) 41px, transparent 42px),
-        radial-gradient(circle at 50% 30%, #1F2125 0%, #08090A 100%);
-      background-attachment: fixed;
-    }
+        /* --- アニメーション --- */
+        @keyframes popUpFade {
+            0% { opacity: 0; transform: scale(0.95) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-pop-up {
+            opacity: 0;
+            animation: popUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
 
-    .bg-cyber-grid {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      background-size: 60px 60px;
-      background-image:
-        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      mask-image: radial-gradient(circle at center, black 30%, transparent 90%);
-      pointer-events: none;
-    }
+        /* --- モダンな番号バッジ --- */
+        .modern-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: #ffffff;
+            font-weight: 900;
+        }
+        .modern-badge span {
+            display: block;
+            line-height: 1;
+            transform: translateY(1px); 
+            letter-spacing: -0.05em;
+            margin-right: -0.05em;
+        }
 
-    /* --- カードデザイン --- */
-    .cut-corner-card {
-      position: relative;
-      background: linear-gradient(145deg, #1A1B1E, #111214);
-      clip-path: polygon(
-        15px 0, 100% 0, 
-        100% calc(100% - 15px), calc(100% - 15px) 100%, 
-        0 100%, 0 15px
-      );
-      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      box-shadow: inset 1px 1px 0 rgba(255,255,255,0.05), inset -1px -1px 0 rgba(0,0,0,0.5);
-      
-      /* 黒い枠の中に白い領域を作るためのパディング */
-      padding: 16px;
-    }
+        /* --- マシンカード --- */
+        .machine-card {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            background: transparent;
+            border-radius: 12px; 
+            overflow: hidden;
+            position: relative;
+        }
+        .machine-card.show { opacity: 1; transform: translateY(0); }
+        .machine-card:hover {
+            transform: translateY(-5px);
+        }
 
-    .card-border-wrapper {
-      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.6));
-      transition: all 0.3s ease;
-    }
-    
-    .card-container {
-      background: #2D2E32;
-      padding: 1px; 
-      clip-path: polygon(
-        15px 0, 100% 0, 
-        100% calc(100% - 15px), calc(100% - 15px) 100%, 
-        0 100%, 0 15px
-      );
-      transition: background 0.3s ease, transform 0.3s ease;
-    }
-
-    .card-border-wrapper:hover .card-container {
-      background: #FF0F00;
-      transform: translateY(-2px);
-      box-shadow: 0 0 20px rgba(255, 15, 0, 0.2);
-    }
-    .card-border-wrapper:hover .cut-corner-card {
-      background: linear-gradient(145deg, #222326, #151618);
-    }
-
-    .scan-line {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(to bottom, 
-        transparent 0%, 
-        rgba(255, 15, 0, 0.15) 50%, 
-        transparent 100%);
-      transform: translateY(-100%);
-      pointer-events: none;
-      z-index: 20;
-    }
-    .card-border-wrapper:hover .scan-line {
-      animation: scan 1s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .deco-corner {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      width: 20px;
-      height: 20px;
-      border-right: 2px solid #FF0F00;
-      border-bottom: 2px solid #FF0F00;
-      opacity: 0.3;
-      transition: all 0.3s ease;
-      z-index: 10;
-    }
-    .card-border-wrapper:hover .deco-corner {
-      opacity: 1;
-      width: 30px;
-      height: 30px;
-      box-shadow: 2px 2px 5px rgba(255, 15, 0, 0.5);
-    }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-    /* --- ナビゲーション --- */
-    .nav-box-container {
-        position: relative;
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        background: #0F1012;
-        border: 1px solid #333;
-        background-image: linear-gradient(to bottom, #1a1b1e, #0e0f11);
-        border-radius: 2px;
-        padding: 4px;
-        box-shadow: 
-            inset 0 1px 0 rgba(255,255,255,0.05),
-            0 5px 15px rgba(0,0,0,0.5);
-    }
-
-    .slider-indicator {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 33.333%;
-        height: 2px;
-        background-color: #FF0F00;
-        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-        z-index: 10;
-        box-shadow: 0 -1px 8px rgba(255, 15, 0, 0.8);
-    }
-    
-    .section-num {
-        font-family: 'JetBrains Mono', monospace;
-        position: absolute;
-        top: -20px;
-        left: 0;
-        font-size: 80px;
-        font-weight: 900;
-        color: rgba(255,255,255,0.03);
-        z-index: 0;
-        pointer-events: none;
-        line-height: 1;
-    }
-</style>
+        .img-blend {
+            mix-blend-mode: multiply; 
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            -webkit-font-smoothing: subpixel-antialiased;
+        }
+    </style>
 </head>
-<body class="min-h-screen relative font-sans selection:bg-brand-red selection:text-white">
+<body class="bg-joybg text-joytext flex min-h-screen overflow-x-hidden selection:bg-joyred selection:text-white">
 
-<div class="bg-metal-texture"></div>
-<div class="bg-cyber-grid"></div>
+    <!-- メニューを開くボタン -->
+    <button id="open-sidebar-btn" class="fixed top-4 left-4 z-[60] bg-joypanel text-joytext p-3 rounded-full border border-joygray hover:text-joyred transition-all duration-300 hidden group shadow-md">
+        <i data-lucide="menu" class="w-6 h-6 transform group-hover:scale-110 transition-transform"></i>
+    </button>
 
-<div class="fixed top-8 left-8 text-brand-muted/30 text-[10px] font-mono pointer-events-none z-0 writing-vertical-rl flex gap-4">
-    <span>SYS.MONITORING</span>
-    <span>SECURE.CONNECTION</span>
-</div>
-<div class="fixed bottom-8 right-8 flex gap-2 pointer-events-none z-0">
-    <div class="w-1 h-1 bg-brand-red/50 rounded-full animate-pulse"></div>
-    <div class="w-1 h-1 bg-brand-muted/30 rounded-full"></div>
-    <div class="w-1 h-1 bg-brand-muted/30 rounded-full"></div>
-</div>
+    <!-- 左側：サイドメニュー -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-transparent z-[70] flex flex-col transition-transform duration-500 ease-in-out pointer-events-none">
+        <div class="h-full w-full p-4 pointer-events-auto flex flex-col">
+            <div class="bg-joypanel border border-joygray rounded-2xl flex flex-col h-full shadow-lg relative overflow-hidden">
+                <button id="close-sidebar-btn" class="absolute top-4 right-4 text-gray-400 hover:text-joyred bg-joybg hover:bg-gray-100 rounded-full p-1.5 transition-colors duration-300 z-50 shadow-sm border border-joygray">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
 
-<header class="relative z-10 pt-20 pb-10 px-4 text-center overflow-hidden">
-    <div class="inline-flex items-center justify-center border border-brand-border bg-brand-panel/90 px-6 py-1 mb-8 transform skew-x-[-10deg] shadow-lg">
-        <div class="transform skew-x-[10deg] flex items-center">
-            <div class="w-2 h-2 bg-brand-red rounded-sm animate-pulse shadow-[0_0_8px_#FF0F00] mr-3"></div>
-            <span class="text-xs font-mono font-bold tracking-[0.2em] text-brand-muted">JOYFIT24経堂</span>
-        </div>
-    </div>
-
-    <h1 class="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tighter mb-4 drop-shadow-2xl">
-        マシンラインナップ
-    </h1>
-    <div class="flex items-center justify-center gap-4 text-brand-muted text-xs md:text-sm font-mono tracking-widest uppercase opacity-80">
-        <span class="w-8 h-[1px] bg-brand-red/50"></span>
-        <span>2F Gym Area Layout</span>
-        <span class="w-8 h-[1px] bg-brand-red/50"></span>
-    </div>
-</header>
-
-<nav class="sticky top-0 z-50 bg-[#0B0C0E]/95 backdrop-blur-sm border-b border-brand-border/50 shadow-2xl py-4">
-    <div class="max-w-3xl mx-auto px-4">
-        <div class="nav-box-container">
-            <div class="slider-indicator" id="nav-slider"></div>
-
-            <button class="tab-nav-button group relative py-3 focus:outline-none w-full text-center z-20" data-index="0" data-target="cardio">
-                <div class="flex flex-col items-center justify-center">
-                    <span class="text-[9px] font-mono font-bold text-brand-muted group-[.active]:text-brand-red mb-1 transition-colors">01</span>
-                    <span class="text-xs md:text-sm font-bold text-gray-500 group-hover:text-white group-[.active]:text-white transition-colors tracking-wide">有酸素マシン</span>
+                <div class="pt-8 pb-4 flex flex-col items-center justify-center flex-shrink-0 border-b border-joygray bg-joybg">
+                    <span class="text-xl font-black text-joyred tracking-widest mb-1">JOYFIT24</span>
+                    <span class="text-sm font-bold text-joytext tracking-widest">経堂</span>
                 </div>
-            </button>
-
-            <button class="tab-nav-button group relative py-3 focus:outline-none w-full text-center z-20" data-index="1" data-target="resistance">
-                <div class="flex flex-col items-center justify-center">
-                    <span class="text-[9px] font-mono font-bold text-brand-muted group-[.active]:text-brand-red mb-1 transition-colors">02</span>
-                    <span class="text-xs md:text-sm font-bold text-gray-500 group-hover:text-white group-[.active]:text-white transition-colors tracking-wide">ウェイトマシン</span>
-                </div>
-            </button>
-
-            <button class="tab-nav-button group relative py-3 focus:outline-none w-full text-center z-20" data-index="2" data-target="freeweight">
-                <div class="flex flex-col items-center justify-center">
-                    <span class="text-[9px] font-mono font-bold text-brand-muted group-[.active]:text-brand-red mb-1 transition-colors">03</span>
-                    <span class="text-xs md:text-sm font-bold text-gray-500 group-hover:text-white group-[.active]:text-white transition-colors tracking-wide">フリーウェイト</span>
-                </div>
-            </button>
-        </div>
-    </div>
-</nav>
-
-<main class="relative z-10 max-w-7xl mx-auto px-4 py-16 md:px-8 min-h-[80vh]">
-
-    <section id="cardio" class="tab-content active relative">
-        <span class="section-num">01</span>
-        <header class="relative flex items-end justify-between mb-12 pb-4 border-b border-brand-border/50">
-            <div>
-                <div class="flex items-center gap-3 mb-2">
-                     <div class="w-1.5 h-6 bg-brand-red shadow-[0_0_10px_#FF0F00]"></div>
-                     <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight italic">有酸素マシン</h2>
-                </div>
-                <p class="text-[10px] font-mono text-brand-muted pl-4">AREA 01 // CARDIO VASCULAR</p>
+                
+                <nav id="area-menu" class="flex flex-col flex-grow p-3 gap-3 overflow-y-auto no-scrollbar">
+                    <!-- JSで生成 -->
+                </nav>
             </div>
-            <div class="hidden md:block opacity-50">
-                <div class="font-mono text-xs text-brand-muted text-right">
-                    STATUS: ACTIVE<br>TEMP: 24.0°C
-                </div>
-            </div>
-        </header>
+        </div>
+    </aside>
+
+    <!-- 右側：メインコンテンツ -->
+    <main id="main-content" class="ml-64 flex-1 min-w-0 flex flex-col transition-all duration-500 ease-in-out relative z-10">
         
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-8">
-            <div class="card-border-wrapper animate-slide-up" style="animation-delay: 0.05s;">
-                <div class="card-container">
-                    <div class="cut-corner-card group">
-                        <div class="scan-line"></div>
-                        <div class="deco-corner"></div>
-                        <div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50">
-                            <span class="font-mono text-[9px] font-bold text-gray-300">CD-01</span>
-                        </div>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner">
-                            <img alt="トレッドミル" src="cardio_1.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Cardio+01';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/>
-                        </div>
+        <!-- ヒーローセクション (白背景) -->
+        <div class="relative w-full bg-joypanel py-12 md:py-20 px-4 flex flex-col items-center justify-center border-b-[8px] border-joyred overflow-hidden z-20 shadow-sm">
+            
+            <div class="relative z-30 animate-pop-up flex flex-col items-center mb-4 w-full text-center">
+                <h1 class="font-black text-4xl sm:text-5xl md:text-6xl lg:text-[5.5rem] tracking-widest leading-tight mb-2 text-joyred">JOYFIT24</h1>
+                <span class="font-bold text-3xl sm:text-4xl md:text-5xl lg:text-[4rem] tracking-wider leading-tight text-joytext">経堂</span>
+            </div>
+            
+            <div class="relative z-30 animate-pop-up mb-4 w-full text-center px-2" style="animation-delay: 0.1s;">
+                <h2 class="font-black text-2xl sm:text-3xl md:text-5xl lg:text-[4rem] leading-tight tracking-wider text-joytext whitespace-nowrap">
+                    マシンラインナップ
+                </h2>
+            </div>
+        </div>
+
+        <!-- マシン表示エリア -->
+        <div class="relative z-10 overflow-hidden min-h-screen">
+            
+            <div class="px-3 md:px-10 lg:px-16 py-12 md:py-20 relative z-20">
+                <!-- エリアタイトル -->
+                <div class="mb-10 md:mb-14 flex flex-col items-center justify-center">
+                    <div class="relative px-6 md:px-10 py-3 md:py-4 bg-joypanel border border-joygray rounded-full shadow-md flex items-center justify-center transition-all duration-500 mb-3 md:mb-4">
+                        <h2 id="current-area-title" class="text-xl md:text-3xl font-black tracking-widest text-joytext flex items-center gap-3">
+                            <!-- JSで挿入 -->
+                        </h2>
                     </div>
                 </div>
-            </div>
-            <div class="card-border-wrapper animate-slide-up" style="animation-delay: 0.1s;">
-                <div class="card-container">
-                    <div class="cut-corner-card group">
-                        <div class="scan-line"></div>
-                        <div class="deco-corner"></div>
-                        <div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50">
-                            <span class="font-mono text-[9px] font-bold text-gray-300">CD-02</span>
-                        </div>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner">
-                            <img alt="クロストレーナー" src="cardio_2.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Cardio+02';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="card-border-wrapper animate-slide-up" style="animation-delay: 0.15s;">
-                <div class="card-container">
-                    <div class="cut-corner-card group">
-                        <div class="scan-line"></div>
-                        <div class="deco-corner"></div>
-                        <div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50">
-                            <span class="font-mono text-[9px] font-bold text-gray-300">CD-03</span>
-                        </div>
-                        <div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner">
-                            <img alt="エアロバイク" src="cardio_3.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Cardio+03';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/>
-                        </div>
-                    </div>
+                
+                <!-- マシングリッド -->
+                <div id="machine-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6 relative z-30">
+                    <!-- JSで生成 -->
                 </div>
             </div>
         </div>
-    </section>
+    </main>
 
-    <section id="resistance" class="tab-content relative">
-        <span class="section-num">02</span>
-        <header class="relative flex items-end justify-between mb-12 pb-4 border-b border-brand-border/50">
-            <div>
-                 <div class="flex items-center gap-3 mb-2">
-                     <div class="w-1.5 h-6 bg-brand-red shadow-[0_0_10px_#FF0F00]"></div>
-                    <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight italic">ウェイトマシン</h2>
-                </div>
-                <p class="text-[10px] font-mono text-brand-muted pl-4">AREA 02 // STRENGTH TRAINING</p>
-            </div>
-             <div class="hidden md:block opacity-50">
-                <div class="font-mono text-xs text-brand-muted text-right">
-                    STATUS: ACTIVE<br>LOAD: NORMAL
-                </div>
-            </div>
-        </header>
+    <script>
+        // JOYFIT24経堂のデータ
+        const gymData = [
+            { id: 'cardio', title: '有酸素マシン', items: [
+                { imgBase: 'cardio_1' },
+                { imgBase: 'cardio_2' },
+                { imgBase: 'cardio_3' }
+            ]},
+            { id: 'resistance', title: 'ウェイトマシン', items: [
+                { imgBase: 'resistance_1' },
+                { imgBase: 'resistance_2' },
+                { imgBase: 'resistance_3' },
+                { imgBase: 'resistance_4' },
+                { imgBase: 'resistance_5' },
+                { imgBase: 'resistance_6' },
+                { imgBase: 'resistance_7' },
+                { imgBase: 'resistance_8' },
+                { imgBase: 'resistance_9' },
+                { imgBase: 'resistance_10' },
+                { imgBase: 'resistance_11' },
+                { imgBase: 'resistance_12' },
+                { imgBase: 'resistance_13' },
+                { imgBase: 'resistance_14' },
+                { imgBase: 'resistance_15' }
+            ]},
+            { id: 'freeweight', title: 'フリーウェイト', items: [
+                { imgBase: 'freeweight_1' },
+                { imgBase: 'freeweight_2' },
+                { imgBase: 'freeweight_3' },
+                { imgBase: 'freeweight_4' },
+                { imgBase: 'freeweight_5' },
+                { imgBase: 'freeweight_6' },
+                { imgBase: 'freeweight_7' },
+                { imgBase: 'freeweight_8' },
+                { imgBase: 'freeweight_9' },
+                { imgBase: 'freeweight_10' },
+                { imgBase: 'freeweight_11' },
+                { imgBase: 'freeweight_12' }
+            ]}
+        ];
 
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-8">
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-01</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン1" src="resistance_1.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+01';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-02</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン2" src="resistance_2.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+02';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-03</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン3" src="resistance_3.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+03';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-04</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン4" src="resistance_4.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+04';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-05</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン5" src="resistance_5.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+05';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-06</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン6" src="resistance_6.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+06';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-07</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン7" src="resistance_7.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+07';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-08</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン8" src="resistance_8.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+08';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-09</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン9" src="resistance_9.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+09';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-10</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン10" src="resistance_10.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+10';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-11</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン11" src="resistance_11.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+11';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-12</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン12" src="resistance_12.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+12';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-13</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン13" src="resistance_13.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+13';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-14</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン14" src="resistance_14.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+14';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">RS-15</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="レジスタンスマシン15" src="resistance_15.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=Machine+15';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-        </div>
-    </section>
+        const menuContainer = document.getElementById('area-menu');
+        const gridContainer = document.getElementById('machine-grid');
+        const titleContainer = document.getElementById('current-area-title');
+        
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const openBtn = document.getElementById('open-sidebar-btn');
+        const closeBtn = document.getElementById('close-sidebar-btn');
 
-    <section id="freeweight" class="tab-content relative">
-        <span class="section-num">03</span>
-        <header class="relative flex items-end justify-between mb-12 pb-4 border-b border-brand-border/50">
-            <div>
-                 <div class="flex items-center gap-3 mb-2">
-                     <div class="w-1.5 h-6 bg-brand-red shadow-[0_0_10px_#FF0F00]"></div>
-                    <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight italic">フリーウェイト</h2>
-                </div>
-                <p class="text-[10px] font-mono text-brand-muted pl-4">AREA 03 // FREE WEIGHT ZONE</p>
-            </div>
-             <div class="hidden md:block opacity-50">
-                <div class="font-mono text-xs text-brand-muted text-right">
-                    STATUS: ACTIVE<br>MAX LOAD: 200KG
-                </div>
-            </div>
-        </header>
+        let currentActiveId = null;
 
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-8">
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-01</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト1" src="freeweight_1.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+01';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-02</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト2" src="freeweight_2.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+02';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-03</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト3" src="freeweight_3.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+03';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-04</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト4" src="freeweight_4.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+04';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-05</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト5" src="freeweight_5.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+05';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-06</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト6" src="freeweight_6.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+06';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-07</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト7" src="freeweight_7.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+07';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-08</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト8" src="freeweight_8.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+08';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-09</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト9" src="freeweight_9.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+09';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-10</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト10" src="freeweight_10.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+10';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-11</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト11" src="freeweight_11.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+11';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-            <div class="card-border-wrapper"><div class="card-container"><div class="cut-corner-card group"><div class="scan-line"></div><div class="deco-corner"></div><div class="absolute top-0 left-0 bg-brand-border/80 px-2 py-1 z-10 clip-path-badge backdrop-blur-sm border-b border-r border-black/50"><span class="font-mono text-[9px] font-bold text-gray-300">FW-12</span></div><div class="aspect-[4/3] w-full relative p-4 flex items-center justify-center bg-white shadow-inner"><img alt="フリーウェイト12" src="freeweight_12.jpg" onerror="this.onerror=null;this.src='https://placehold.co/400x300/1a1a1a/555?text=FreeWeight+12';" class="max-w-full max-h-full object-contain transition-transform duration-500 hover:scale-105"/></div></div></div></div>
-        </div>
-    </section>
-
-</main>
-
-<footer class="relative z-10 py-12 text-center border-t border-brand-border/30 bg-[#0B0C0E] text-brand-muted">
-    <div class="flex flex-col items-center justify-center">
-        <div class="w-8 h-8 border-2 border-brand-muted/30 rotate-45 mb-4"></div>
-        <p class="font-mono text-[10px] tracking-[0.3em] uppercase opacity-50">JOYFIT24 SYSTEM © ALL RIGHTS RESERVED.</p>
-    </div>
-</footer>
-
-<!-- JavaScript -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // 1. タブ切り替え
-    const tabButtons = document.querySelectorAll('.tab-nav-button');
-    const tabContents = document.querySelectorAll('.tab-content');
-    const slider = document.getElementById('nav-slider');
-
-    function switchTab(targetId, index) {
-        tabContents.forEach(content => {
-            content.classList.remove('active');
-            if(content.id === targetId) {
-                content.classList.add('active');
-                triggerEntryAnimations(content);
+        function toggleSidebar(show) {
+            if (show) {
+                sidebar.classList.remove('-translate-x-full');
+                if (window.innerWidth >= 768) {
+                    mainContent.classList.add('ml-64');
+                    mainContent.classList.remove('ml-0');
+                }
+                openBtn.classList.add('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                mainContent.classList.remove('ml-64');
+                mainContent.classList.add('ml-0');
+                openBtn.classList.remove('hidden');
             }
-        });
+        }
 
-        tabButtons.forEach(btn => {
-            btn.classList.remove('active');
-            if(btn.dataset.target === targetId) {
-                btn.classList.add('active');
-            }
-        });
+        openBtn.addEventListener('click', () => toggleSidebar(true));
+        closeBtn.addEventListener('click', () => toggleSidebar(false));
 
-        slider.style.transform = `translateX(${index * 100}%)`;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+        if (window.innerWidth < 768) toggleSidebar(false);
 
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-target');
-            const index = parseInt(this.getAttribute('data-index'));
-            switchTab(targetId, index);
-        });
-    });
+        function buildMenu() {
+            gymData.forEach((area, index) => {
+                const btn = document.createElement('button');
+                btn.className = `w-full block focus:outline-none mb-2 rounded-full transition-all duration-300 relative group bg-joypanel border border-joygray hover:border-joyred shadow-sm`;
+                
+                const numText = String(index + 1).padStart(2, '0');
+                
+                btn.innerHTML = `
+                    <div class="relative z-10 px-2 py-2 flex items-center justify-start gap-3 transition-colors duration-300">
+                        <div class="menu-num w-8 h-8 modern-badge text-sm transition-all duration-300 flex-shrink-0" style="background-color: #6B7280;">
+                            <span class="font-black">${numText}</span>
+                        </div>
+                        <span class="menu-text text-xs md:text-sm font-bold tracking-widest transition-colors duration-300 text-left text-gray-500 group-hover:text-joyred">${area.title}</span>
+                    </div>
+                `;
+                
+                btn.onclick = () => selectArea(area.id, btn, index);
+                menuContainer.appendChild(btn);
 
-    // 2. スクロールアニメーション
-    const observerOptions = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.05
-    };
+                if (index === 0) selectArea(area.id, btn, index);
+            });
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
 
-    const observer = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('animate-slide-up');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
+        function selectArea(id, selectedBtn, index) {
+            if (currentActiveId === id) return;
+            currentActiveId = id;
 
-    function triggerEntryAnimations(container) {
-        const cards = container.querySelectorAll('.card-border-wrapper');
-        cards.forEach((card, index) => {
-            card.classList.remove('animate-slide-up');
-            void card.offsetWidth; 
-            card.style.animationDelay = `${index * 0.03}s`;
-            observer.observe(card);
-        });
-    }
+            const allBtns = menuContainer.querySelectorAll('button');
+            allBtns.forEach(btn => {
+                const numBadge = btn.querySelector('.menu-num');
+                const textSpan = btn.querySelector('.menu-text');
+                
+                if (btn === selectedBtn) {
+                    btn.classList.add('bg-red-50', 'border-joyred');
+                    btn.classList.remove('border-joygray', 'bg-joypanel');
+                    numBadge.style.backgroundColor = '#C71744';
+                    numBadge.style.transform = 'scale(1.1)';
+                    textSpan.classList.add('text-joyred');
+                    textSpan.classList.remove('text-gray-500');
+                } else {
+                    btn.classList.remove('bg-red-50', 'border-joyred');
+                    btn.classList.add('border-joygray', 'bg-joypanel');
+                    numBadge.style.backgroundColor = '#6B7280';
+                    numBadge.style.transform = 'scale(1)';
+                    textSpan.classList.remove('text-joyred');
+                    textSpan.classList.add('text-gray-500');
+                }
+            });
 
-    const activeContent = document.querySelector('.tab-content.active');
-    if(activeContent) {
-        triggerEntryAnimations(activeContent);
-    }
-  });
-</script>
+            const areaData = gymData.find(a => a.id === id);
+            
+            titleContainer.parentElement.style.opacity = '0';
+            setTimeout(() => {
+                const numText = String(index + 1).padStart(2, '0');
+                titleContainer.innerHTML = `
+                    <div class="w-8 h-8 md:w-10 md:h-10 modern-badge text-base md:text-xl flex-shrink-0 font-black shadow-sm" style="background-color: #C71744;">
+                        <span>${numText}</span>
+                    </div>
+                    <span class="font-black">${areaData.title}</span>
+                `;
+                titleContainer.parentElement.style.opacity = '1';
+            }, 200);
 
+            gridContainer.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+
+            areaData.items.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = `machine-card group cursor-default shadow-sm hover:shadow-lg transition-shadow bg-joypanel rounded-xl border border-joygray`;
+
+                let imgHTML = `<img src="${item.imgBase}.jpg" alt="マシン画像" onerror="this.onerror=null;this.src='https://placehold.co/400x300/f4f4f5/999999?text=Image';" class="w-full h-full object-contain p-2 img-blend group-hover:scale-105 transition-transform duration-500 ease-out relative z-10">`;
+
+                // 画像のみのシンプルな構成
+                card.innerHTML = `
+                    <div class="relative aspect-[4/3] flex items-center justify-center overflow-hidden">
+                        ${imgHTML}
+                    </div>
+                `;
+
+                fragment.appendChild(card);
+                setTimeout(() => card.classList.add('show'), 30 * idx);
+            });
+            
+            gridContainer.appendChild(fragment);
+        }
+
+        document.addEventListener('DOMContentLoaded', buildMenu);
+    </script>
 </body>
 </html>
