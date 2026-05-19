@@ -20,11 +20,11 @@
             theme: {
                 extend: {
                     colors: {
-                        joyred: '#C71744',      /* スクショに合わせたJOYFITレッド */
-                        joybg: '#F9F9F9',       /* 全体背景用のごく薄いグレー */
-                        joypanel: '#FFFFFF',    /* パネル用白 */
-                        joygray: '#E5E7EB',     /* ボーダーや控えめな要素 */
-                        joytext: '#333333',     /* メインテキスト */
+                        joyred: '#C71744',
+                        joybg: '#F9F9F9',
+                        joypanel: '#FFFFFF',
+                        joygray: '#E5E7EB',
+                        joytext: '#333333',
                     },
                     fontFamily: {
                         sans: ['"Noto Sans JP"', 'sans-serif'],
@@ -34,15 +34,12 @@
         }
     </script>
     <style>
-        /* ベース設定 */
         html { scroll-behavior: smooth; background-color: #F9F9F9; color: #333333; }
         body { font-family: 'Noto Sans JP', sans-serif; }
 
-        /* スクロールバー非表示 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* --- アニメーション --- */
         @keyframes popUpFade {
             0% { opacity: 0; transform: scale(0.95) translateY(20px); }
             100% { opacity: 1; transform: scale(1) translateY(0); }
@@ -52,7 +49,6 @@
             animation: popUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        /* --- モダンな番号バッジ --- */
         .modern-badge {
             display: inline-flex;
             align-items: center;
@@ -64,28 +60,25 @@
         .modern-badge span {
             display: block;
             line-height: 1;
-            transform: translateY(1px); 
+            transform: translateY(1px);
             letter-spacing: -0.05em;
             margin-right: -0.05em;
         }
 
-        /* --- マシンカード --- */
         .machine-card {
             opacity: 0;
             transform: translateY(20px);
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
             background: transparent;
-            border-radius: 12px; 
+            border-radius: 12px;
             overflow: hidden;
             position: relative;
         }
         .machine-card.show { opacity: 1; transform: translateY(0); }
-        .machine-card:hover {
-            transform: translateY(-5px);
-        }
+        .machine-card:hover { transform: translateY(-5px); }
 
         .img-blend {
-            mix-blend-mode: multiply; 
+            mix-blend-mode: multiply;
             transform: translateZ(0);
             backface-visibility: hidden;
             -webkit-font-smoothing: subpixel-antialiased;
@@ -94,12 +87,10 @@
 </head>
 <body class="bg-joybg text-joytext flex min-h-screen overflow-x-hidden selection:bg-joyred selection:text-white">
 
-    <!-- メニューを開くボタン -->
     <button id="open-sidebar-btn" class="fixed top-4 left-4 z-[60] bg-joypanel text-joytext p-3 rounded-full border border-joygray hover:text-joyred transition-all duration-300 hidden group shadow-md">
         <i data-lucide="menu" class="w-6 h-6 transform group-hover:scale-110 transition-transform"></i>
     </button>
 
-    <!-- 左側：サイドメニュー -->
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-transparent z-[70] flex flex-col transition-transform duration-500 ease-in-out pointer-events-none">
         <div class="h-full w-full p-4 pointer-events-auto flex flex-col">
             <div class="bg-joypanel border border-joygray rounded-2xl flex flex-col h-full shadow-lg relative overflow-hidden">
@@ -111,7 +102,7 @@
                     <span class="text-xl font-black text-joyred tracking-widest mb-1">JOYFIT24</span>
                     <span class="text-sm font-bold text-joytext tracking-widest">経堂</span>
                 </div>
-                
+
                 <nav id="area-menu" class="flex flex-col flex-grow p-3 gap-3 overflow-y-auto no-scrollbar">
                     <!-- JSで生成 -->
                 </nav>
@@ -119,10 +110,8 @@
         </div>
     </aside>
 
-    <!-- 右側：メインコンテンツ -->
     <main id="main-content" class="ml-64 flex-1 min-w-0 flex flex-col transition-all duration-500 ease-in-out relative z-10">
         
-        <!-- ヒーローセクション (白背景) -->
         <div class="relative w-full bg-joypanel py-12 md:py-20 px-4 flex flex-col items-center justify-center border-b-[8px] border-joyred overflow-hidden z-20 shadow-sm">
             
             <div class="relative z-30 animate-pop-up flex flex-col items-center mb-4 w-full text-center">
@@ -137,11 +126,9 @@
             </div>
         </div>
 
-        <!-- マシン表示エリア -->
         <div class="relative z-10 overflow-hidden min-h-screen">
             
             <div class="px-3 md:px-10 lg:px-16 py-12 md:py-20 relative z-20">
-                <!-- エリアタイトル -->
                 <div class="mb-10 md:mb-14 flex flex-col items-center justify-center">
                     <div class="relative px-6 md:px-10 py-3 md:py-4 bg-joypanel border border-joygray rounded-full shadow-md flex items-center justify-center transition-all duration-500 mb-3 md:mb-4">
                         <h2 id="current-area-title" class="text-xl md:text-3xl font-black tracking-widest text-joytext flex items-center gap-3">
@@ -150,7 +137,6 @@
                     </div>
                 </div>
                 
-                <!-- マシングリッド -->
                 <div id="machine-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6 relative z-30">
                     <!-- JSで生成 -->
                 </div>
@@ -159,7 +145,6 @@
     </main>
 
     <script>
-        // JOYFIT24経堂のデータ
         const gymData = [
             { id: 'cardio', title: '有酸素マシン', items: [
                 { imgBase: 'cardio_1' },
@@ -304,7 +289,6 @@
 
                 let imgHTML = `<img src="${item.imgBase}.jpg" alt="マシン画像" onerror="this.onerror=null;this.src='https://placehold.co/400x300/f4f4f5/999999?text=Image';" class="w-full h-full object-contain p-2 img-blend group-hover:scale-105 transition-transform duration-500 ease-out relative z-10">`;
 
-                // 画像のみのシンプルな構成
                 card.innerHTML = `
                     <div class="relative aspect-[4/3] flex items-center justify-center overflow-hidden">
                         ${imgHTML}
