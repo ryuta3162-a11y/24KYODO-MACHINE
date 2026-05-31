@@ -20,7 +20,7 @@
             theme: {
                 extend: {
                     colors: {
-                        joyred: '#A63646',
+                        joyred: '#DC2626',
                         joybg: '#F3F4F6',
                         joypanel: '#FFFFFF',
                         joygray: '#E5E7EB',
@@ -47,7 +47,7 @@
             z-index: 0;
             pointer-events: none;
             background:
-                radial-gradient(1200px 600px at 50% -10%, rgba(166, 54, 70, 0.07), transparent 60%),
+                radial-gradient(1200px 600px at 50% -10%, rgba(220, 38, 38, 0.07), transparent 60%),
                 radial-gradient(900px 500px at 10% 20%, rgba(255, 255, 255, 0.9), transparent 55%),
                 radial-gradient(900px 500px at 90% 20%, rgba(255, 255, 255, 0.7), transparent 55%);
         }
@@ -97,6 +97,22 @@
             transform: translateZ(0);
             backface-visibility: hidden;
             -webkit-font-smoothing: subpixel-antialiased;
+        }
+
+        .site-footer-bar {
+            background-color: #DC2626;
+            padding: 1.25rem 1rem;
+            width: 100vw;
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+        }
+        .site-footer-bar .footer-logo-img {
+            height: 2rem;
+            width: auto;
+            max-width: min(100%, 220px);
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
         }
     </style>
 </head>
@@ -157,6 +173,12 @@
                 </div>
             </div>
         </div>
+
+        <footer class="site-footer-bar border-t border-white/10 mt-auto">
+            <div class="container mx-auto text-center">
+                <img src="joyfit_logo.png" alt="JOYFIT24" class="footer-logo-img">
+            </div>
+        </footer>
     </main>
 
     <script>
@@ -267,7 +289,7 @@
                 if (btn === selectedBtn) {
                     btn.classList.add('bg-red-50', 'border-joyred');
                     btn.classList.remove('border-joygray', 'bg-joypanel');
-                    numBadge.style.backgroundColor = '#A63646';
+                    numBadge.style.backgroundColor = '#DC2626';
                     numBadge.style.transform = 'scale(1.1)';
                     textSpan.classList.add('text-joyred');
                     textSpan.classList.remove('text-gray-500');
@@ -287,7 +309,7 @@
             setTimeout(() => {
                 const numText = String(index + 1).padStart(2, '0');
                 titleContainer.innerHTML = `
-                    <div class="w-8 h-8 md:w-10 md:h-10 modern-badge text-base md:text-xl flex-shrink-0 font-black shadow-sm" style="background-color: #A63646;">
+                    <div class="w-8 h-8 md:w-10 md:h-10 modern-badge text-base md:text-xl flex-shrink-0 font-black shadow-sm" style="background-color: #DC2626;">
                         <span>${numText}</span>
                     </div>
                     <span class="font-black">${areaData.title}</span>
