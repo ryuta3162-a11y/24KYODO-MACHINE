@@ -20,11 +20,11 @@
             theme: {
                 extend: {
                     colors: {
-                        joyred: '#C71744',
-                        joybg: '#F9F9F9',
+                        joyred: '#A63646',
+                        joybg: '#F3F4F6',
                         joypanel: '#FFFFFF',
                         joygray: '#E5E7EB',
-                        joytext: '#333333',
+                        joytext: '#111827',
                     },
                     fontFamily: {
                         sans: ['"Noto Sans JP"', 'sans-serif'],
@@ -34,8 +34,23 @@
         }
     </script>
     <style>
-        html { scroll-behavior: smooth; background-color: #F9F9F9; color: #333333; }
-        body { font-family: 'Noto Sans JP', sans-serif; }
+        html { scroll-behavior: smooth; background-color: #F3F4F6; color: #111827; }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            position: relative;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(1200px 600px at 50% -10%, rgba(166, 54, 70, 0.07), transparent 60%),
+                radial-gradient(900px 500px at 10% 20%, rgba(255, 255, 255, 0.9), transparent 55%),
+                radial-gradient(900px 500px at 90% 20%, rgba(255, 255, 255, 0.7), transparent 55%);
+        }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -252,7 +267,7 @@
                 if (btn === selectedBtn) {
                     btn.classList.add('bg-red-50', 'border-joyred');
                     btn.classList.remove('border-joygray', 'bg-joypanel');
-                    numBadge.style.backgroundColor = '#C71744';
+                    numBadge.style.backgroundColor = '#A63646';
                     numBadge.style.transform = 'scale(1.1)';
                     textSpan.classList.add('text-joyred');
                     textSpan.classList.remove('text-gray-500');
@@ -272,7 +287,7 @@
             setTimeout(() => {
                 const numText = String(index + 1).padStart(2, '0');
                 titleContainer.innerHTML = `
-                    <div class="w-8 h-8 md:w-10 md:h-10 modern-badge text-base md:text-xl flex-shrink-0 font-black shadow-sm" style="background-color: #C71744;">
+                    <div class="w-8 h-8 md:w-10 md:h-10 modern-badge text-base md:text-xl flex-shrink-0 font-black shadow-sm" style="background-color: #A63646;">
                         <span>${numText}</span>
                     </div>
                     <span class="font-black">${areaData.title}</span>
