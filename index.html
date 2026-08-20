@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JOYFIT24経堂 - マシンラインナップ</title>
     
-    <!-- Google Fonts: Noto Sans JP -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <script>
@@ -20,11 +17,13 @@
             theme: {
                 extend: {
                     colors: {
-                        joyred: '#DC2626',
-                        joybg: '#F3F4F6',
+                        joyred: '#C21632',
+                        joyink: '#111111',
+                        joybg: '#FFFFFF',
                         joypanel: '#FFFFFF',
-                        joygray: '#E5E7EB',
-                        joytext: '#111827',
+                        joygray: '#E5E5E5',
+                        joytext: '#111111',
+                        joymuted: '#555555',
                     },
                     fontFamily: {
                         sans: ['"Noto Sans JP"', 'sans-serif'],
@@ -34,107 +33,187 @@
         }
     </script>
     <style>
-        html { scroll-behavior: smooth; background-color: #F3F4F6; color: #111827; }
+        :root {
+            --brand-red: #C21632;
+            --brand-red-dark: #8a0e20;
+            --ink: #111111;
+            --muted: #555555;
+            --line: #E5E5E5;
+            --radius: 0.35rem;
+        }
+        html { scroll-behavior: smooth; background: #FFFFFF; color: var(--ink); }
         body {
             font-family: 'Noto Sans JP', sans-serif;
-            position: relative;
             overflow-x: hidden;
-        }
-        body::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            background:
-                radial-gradient(1200px 600px at 50% -10%, rgba(220, 38, 38, 0.07), transparent 60%),
-                radial-gradient(900px 500px at 10% 20%, rgba(255, 255, 255, 0.9), transparent 55%),
-                radial-gradient(900px 500px at 90% 20%, rgba(255, 255, 255, 0.7), transparent 55%);
+            background: #FFFFFF;
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        @keyframes popUpFade {
-            0% { opacity: 0; transform: scale(0.95) translateY(20px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
+        .hero {
+            text-align: center;
+            padding: 2.75rem 1rem 1.5rem;
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--line);
         }
-        .animate-pop-up {
-            opacity: 0;
-            animation: popUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        .hero-brand {
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            color: var(--ink);
+            margin-bottom: 1rem;
+        }
+        .hero-title-black {
+            margin: 0;
+            font-size: clamp(1.45rem, 4.8vw, 2rem);
+            font-weight: 900;
+            line-height: 1.35;
+            color: var(--ink);
+        }
+        .hero-title-red {
+            margin: 0.35rem 0 0;
+            font-size: clamp(1.55rem, 5.2vw, 2.15rem);
+            font-weight: 900;
+            line-height: 1.3;
+            color: var(--brand-red);
+        }
+        .hero-rule {
+            width: 100%;
+            max-width: 28rem;
+            height: 4px;
+            margin: 1.15rem auto 0;
+            background: var(--brand-red);
+            border: none;
         }
 
-        .modern-badge {
+        .area-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.55rem 1.1rem;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: #fff;
+        }
+        .area-num {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            color: #ffffff;
+            width: 1.75rem;
+            height: 1.75rem;
+            background: var(--brand-red);
+            color: #fff;
+            font-size: 0.75rem;
             font-weight: 900;
-        }
-        .modern-badge span {
-            display: block;
-            line-height: 1;
-            transform: translateY(1px);
-            letter-spacing: -0.05em;
-            margin-right: -0.05em;
+            border-radius: 0.2rem;
         }
 
         .machine-card {
             opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-            background: transparent;
-            border-radius: 12px;
+            transform: translateY(12px);
+            transition: opacity 0.35s ease, transform 0.35s ease, border-color 0.15s ease;
+            background: #FFFFFF;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
             overflow: hidden;
-            position: relative;
         }
         .machine-card.show { opacity: 1; transform: translateY(0); }
-        .machine-card:hover { transform: translateY(-5px); }
+        .machine-card:hover { border-color: var(--brand-red); }
 
         .img-blend {
             mix-blend-mode: multiply;
             transform: translateZ(0);
             backface-visibility: hidden;
-            -webkit-font-smoothing: subpixel-antialiased;
         }
 
-        .site-footer-bar {
-            background-color: #A63646;
-            padding: 1.25rem 1rem;
-            width: 100vw;
-            margin-left: calc(50% - 50vw);
-            margin-right: calc(50% - 50vw);
+        .menu-btn {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: #fff;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
         }
-        .site-footer-bar .footer-logo-img {
+        .menu-btn:hover { border-color: var(--brand-red); }
+        .menu-btn.is-active {
+            border-color: var(--brand-red);
+            background: #fff5f6;
+        }
+        .menu-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
             height: 2rem;
-            width: auto;
-            max-width: min(100%, 220px);
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
+            border-radius: 0.2rem;
+            color: #fff;
+            font-weight: 900;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            background: #888;
+        }
+        .menu-btn.is-active .menu-num { background: var(--brand-red); }
+        .menu-text {
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            text-align: left;
+        }
+        .menu-btn.is-active .menu-text,
+        .menu-btn:hover .menu-text { color: var(--brand-red); }
+
+        #open-sidebar-btn,
+        #close-sidebar-btn {
+            border: 1px solid var(--ink);
+            border-radius: var(--radius);
+            background: #fff;
+            color: var(--ink);
+            box-shadow: none;
+        }
+        #open-sidebar-btn:hover,
+        #close-sidebar-btn:hover { color: var(--brand-red); }
+
+        .sidebar-panel {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+        }
+        .sidebar-brand {
+            border-bottom: 1px solid var(--line);
+            background: #fff;
+        }
+        .sidebar-brand .brand-main {
+            color: var(--brand-red);
+            font-weight: 900;
+            letter-spacing: 0.12em;
+        }
+        .sidebar-brand .brand-sub {
+            color: var(--ink);
+            font-weight: 800;
+            letter-spacing: 0.12em;
         }
     </style>
 </head>
 <body class="bg-joybg text-joytext flex min-h-screen overflow-x-hidden selection:bg-joyred selection:text-white">
 
-    <button id="open-sidebar-btn" class="fixed top-4 left-4 z-[60] bg-joypanel text-joytext p-3 rounded-full border border-joygray hover:text-joyred transition-all duration-300 hidden group shadow-md">
-        <i data-lucide="menu" class="w-6 h-6 transform group-hover:scale-110 transition-transform"></i>
+    <button id="open-sidebar-btn" class="fixed top-4 left-4 z-[60] p-3 hidden group" aria-label="メニューを開く">
+        <i data-lucide="menu" class="w-6 h-6"></i>
     </button>
 
     <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-transparent z-[70] flex flex-col transition-transform duration-500 ease-in-out pointer-events-none">
         <div class="h-full w-full p-4 pointer-events-auto flex flex-col">
-            <div class="bg-joypanel border border-joygray rounded-2xl flex flex-col h-full shadow-lg relative overflow-hidden">
-                <button id="close-sidebar-btn" class="absolute top-4 right-4 text-gray-400 hover:text-joyred bg-joybg hover:bg-gray-100 rounded-full p-1.5 transition-colors duration-300 z-50 shadow-sm border border-joygray">
+            <div class="sidebar-panel flex flex-col h-full relative overflow-hidden">
+                <button id="close-sidebar-btn" class="absolute top-4 right-4 p-1.5 z-50" aria-label="メニューを閉じる">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
 
-                <div class="pt-8 pb-4 flex flex-col items-center justify-center flex-shrink-0 border-b border-joygray bg-joybg">
-                    <span class="text-xl font-black text-joyred tracking-widest mb-1">JOYFIT24</span>
-                    <span class="text-sm font-bold text-joytext tracking-widest">経堂</span>
+                <div class="sidebar-brand pt-8 pb-4 flex flex-col items-center justify-center flex-shrink-0">
+                    <span class="brand-main text-xl mb-1">JOYFIT24</span>
+                    <span class="brand-sub text-sm">経堂</span>
                 </div>
 
-                <nav id="area-menu" class="flex flex-col flex-grow p-3 gap-3 overflow-y-auto no-scrollbar">
+                <nav id="area-menu" class="flex flex-col flex-grow p-3 gap-2 overflow-y-auto no-scrollbar">
                     <!-- JSで生成 -->
                 </nav>
             </div>
@@ -143,42 +222,28 @@
 
     <main id="main-content" class="ml-64 flex-1 min-w-0 flex flex-col transition-all duration-500 ease-in-out relative z-10">
         
-        <div class="relative w-full bg-joypanel py-12 md:py-20 px-4 flex flex-col items-center justify-center border-b-[8px] border-joyred overflow-hidden z-20 shadow-sm">
-            
-            <div class="relative z-30 animate-pop-up flex flex-col items-center mb-4 w-full text-center">
-                <h1 class="font-black text-4xl sm:text-5xl md:text-6xl lg:text-[5.5rem] tracking-widest leading-tight mb-2 text-joyred">JOYFIT24</h1>
-                <span class="font-bold text-3xl sm:text-4xl md:text-5xl lg:text-[4rem] tracking-wider leading-tight text-joytext">経堂</span>
-            </div>
-            
-            <div class="relative z-30 animate-pop-up mb-4 w-full text-center px-2" style="animation-delay: 0.1s;">
-                <h2 class="font-black text-2xl sm:text-3xl md:text-5xl lg:text-[4rem] leading-tight tracking-wider text-joytext whitespace-nowrap">
-                    マシンラインナップ
-                </h2>
-            </div>
-        </div>
+        <header class="hero z-20">
+            <p class="hero-brand">JOYFIT24 経堂</p>
+            <h1 class="hero-title-black">2Fジムエリア</h1>
+            <p class="hero-title-red">マシンラインナップ</p>
+            <hr class="hero-rule">
+        </header>
 
-        <div class="relative z-10 overflow-hidden min-h-screen">
-            
-            <div class="px-3 md:px-10 lg:px-16 py-12 md:py-20 relative z-20">
-                <div class="mb-10 md:mb-14 flex flex-col items-center justify-center">
-                    <div class="relative px-6 md:px-10 py-3 md:py-4 bg-joypanel border border-joygray rounded-full shadow-md flex items-center justify-center transition-all duration-500 mb-3 md:mb-4">
-                        <h2 id="current-area-title" class="text-xl md:text-3xl font-black tracking-widest text-joytext flex items-center gap-3">
+        <div class="relative z-10 overflow-hidden flex-1">
+            <div class="px-3 md:px-10 lg:px-16 py-10 md:py-14 relative z-20">
+                <div class="mb-8 md:mb-10 flex flex-col items-center justify-center">
+                    <div class="area-chip transition-opacity duration-200">
+                        <h2 id="current-area-title" class="text-lg md:text-2xl font-black tracking-widest text-joytext flex items-center gap-3 m-0">
                             <!-- JSで挿入 -->
                         </h2>
                     </div>
                 </div>
                 
-                <div id="machine-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6 relative z-30">
+                <div id="machine-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 relative z-30">
                     <!-- JSで生成 -->
                 </div>
             </div>
         </div>
-
-        <footer class="site-footer-bar border-t border-white/10 mt-auto">
-            <div class="container mx-auto text-center">
-                <img src="joyfit_logo.png" alt="JOYFIT24" class="footer-logo-img">
-            </div>
-        </footer>
     </main>
 
     <script>
@@ -221,7 +286,6 @@
             ]}
         ];
 
-        const menuContainer = document.getElementById('area-menu');
         const gridContainer = document.getElementById('machine-grid');
         const titleContainer = document.getElementById('current-area-title');
         
@@ -256,16 +320,15 @@
         function buildMenu() {
             gymData.forEach((area, index) => {
                 const btn = document.createElement('button');
-                btn.className = `w-full block focus:outline-none mb-2 rounded-full transition-all duration-300 relative group bg-joypanel border border-joygray hover:border-joyred shadow-sm`;
+                btn.type = 'button';
+                btn.className = 'menu-btn focus:outline-none';
                 
                 const numText = String(index + 1).padStart(2, '0');
                 
                 btn.innerHTML = `
-                    <div class="relative z-10 px-2 py-2 flex items-center justify-start gap-3 transition-colors duration-300">
-                        <div class="menu-num w-8 h-8 modern-badge text-sm transition-all duration-300 flex-shrink-0" style="background-color: #6B7280;">
-                            <span class="font-black">${numText}</span>
-                        </div>
-                        <span class="menu-text text-xs md:text-sm font-bold tracking-widest transition-colors duration-300 text-left text-gray-500 group-hover:text-joyred">${area.title}</span>
+                    <div class="relative z-10 px-2 py-2.5 flex items-center justify-start gap-3">
+                        <div class="menu-num">${numText}</div>
+                        <span class="menu-text">${area.title}</span>
                     </div>
                 `;
                 
@@ -283,48 +346,34 @@
 
             const allBtns = menuContainer.querySelectorAll('button');
             allBtns.forEach(btn => {
-                const numBadge = btn.querySelector('.menu-num');
-                const textSpan = btn.querySelector('.menu-text');
-                
                 if (btn === selectedBtn) {
-                    btn.classList.add('bg-red-50', 'border-joyred');
-                    btn.classList.remove('border-joygray', 'bg-joypanel');
-                    numBadge.style.backgroundColor = '#DC2626';
-                    numBadge.style.transform = 'scale(1.1)';
-                    textSpan.classList.add('text-joyred');
-                    textSpan.classList.remove('text-gray-500');
+                    btn.classList.add('is-active');
                 } else {
-                    btn.classList.remove('bg-red-50', 'border-joyred');
-                    btn.classList.add('border-joygray', 'bg-joypanel');
-                    numBadge.style.backgroundColor = '#6B7280';
-                    numBadge.style.transform = 'scale(1)';
-                    textSpan.classList.remove('text-joyred');
-                    textSpan.classList.add('text-gray-500');
+                    btn.classList.remove('is-active');
                 }
             });
 
             const areaData = gymData.find(a => a.id === id);
+            const chip = titleContainer.parentElement;
             
-            titleContainer.parentElement.style.opacity = '0';
+            chip.style.opacity = '0';
             setTimeout(() => {
                 const numText = String(index + 1).padStart(2, '0');
                 titleContainer.innerHTML = `
-                    <div class="w-8 h-8 md:w-10 md:h-10 modern-badge text-base md:text-xl flex-shrink-0 font-black shadow-sm" style="background-color: #DC2626;">
-                        <span>${numText}</span>
-                    </div>
+                    <span class="area-num">${numText}</span>
                     <span class="font-black">${areaData.title}</span>
                 `;
-                titleContainer.parentElement.style.opacity = '1';
-            }, 200);
+                chip.style.opacity = '1';
+            }, 160);
 
             gridContainer.innerHTML = '';
             const fragment = document.createDocumentFragment();
 
             areaData.items.forEach((item, idx) => {
                 const card = document.createElement('div');
-                card.className = `machine-card group cursor-default shadow-sm hover:shadow-lg transition-shadow bg-joypanel rounded-xl border border-joygray`;
+                card.className = 'machine-card group cursor-default';
 
-                let imgHTML = `<img src="${item.imgBase}.jpg" alt="マシン画像" onerror="this.onerror=null;this.src='https://placehold.co/400x300/f4f4f5/999999?text=Image';" class="w-full h-full object-contain p-2 img-blend group-hover:scale-105 transition-transform duration-500 ease-out relative z-10">`;
+                let imgHTML = `<img src="${item.imgBase}.jpg" alt="マシン画像" onerror="this.onerror=null;this.src='https://placehold.co/400x300/f4f4f5/999999?text=Image';" class="w-full h-full object-contain p-2 img-blend">`;
 
                 card.innerHTML = `
                     <div class="relative aspect-[4/3] flex items-center justify-center overflow-hidden">
