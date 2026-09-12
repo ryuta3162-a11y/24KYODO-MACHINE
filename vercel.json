@@ -1,0 +1,19 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/floorplan-app", "destination": "/floorplan-app/index.html" },
+    { "source": "/floorplan-app/", "destination": "/floorplan-app/index.html" },
+    { "source": "/plan", "destination": "/floorplan-app/index.html" },
+    { "source": "/plan/", "destination": "/floorplan-app/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/floorplan-app/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+    },
+    {
+      "source": "/floorplan/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+    }
+  ]
+}

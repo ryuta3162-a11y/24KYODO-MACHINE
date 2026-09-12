@@ -1,0 +1,10 @@
+{
+  "name": "24kyodo-machine",
+  "private": true,
+  "dependencies": {
+    "@vercel/blob": "^2.0.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.4"
+  }
+}
