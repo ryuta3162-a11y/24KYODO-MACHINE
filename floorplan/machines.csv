@@ -1,0 +1,32 @@
+﻿id,name,category,width_cm,length_cm,clearance_cm,module_width_cm,module_length_cm,place_px_w,place_px_h,qty,lp_image,place_file,preview_file
+cardio_1,トレッドミル,cardio,91,174,80,251,334,251,334,13,cardio_1.jpg,cardio_1_place.png,cardio_1_preview.png
+cardio_2,クロストレーナー,cardio,70,200,80,230,360,230,360,4,cardio_2.jpg,cardio_2_place.png,cardio_2_preview.png
+cardio_3a,エアロバイク,cardio,60,114,80,220,274,220,274,1,cardio_3.jpg,cardio_3a_place.png,cardio_3a_preview.png
+cardio_3b,リクラインバイク,cardio,60,160,80,220,320,220,320,2,cardio_3.jpg,cardio_3b_place.png,cardio_3b_preview.png
+resistance_1,レッグプレス,resistance,100,200,80,260,360,260,360,1,resistance_1.jpg,resistance_1_place.png,resistance_1_preview.png
+resistance_2,ショルダープレス,resistance,140,150,80,300,310,300,310,1,resistance_2.jpg,resistance_2_place.png,resistance_2_preview.png
+resistance_3,ペックフライ/リアデルト,resistance,130,140,80,290,300,290,300,1,resistance_3.jpg,resistance_3_place.png,resistance_3_preview.png
+resistance_4,ラットプルダウン,resistance,130,150,80,290,310,290,310,1,resistance_4.jpg,resistance_4_place.png,resistance_4_preview.png
+resistance_5,グルート,resistance,100,150,80,260,310,260,310,1,resistance_5.jpg,resistance_5_place.png,resistance_5_preview.png
+resistance_6,シットアップベンチ,resistance,70,160,80,230,320,230,320,1,resistance_6.jpg,resistance_6_place.png,resistance_6_preview.png
+resistance_7,バックエクステンション,resistance,80,130,80,240,290,240,290,1,resistance_7.jpg,resistance_7_place.png,resistance_7_preview.png
+resistance_8,レッグエクステンション,resistance,120,150,80,280,310,280,310,1,resistance_8.jpg,resistance_8_place.png,resistance_8_preview.png
+resistance_9,レッグカール,resistance,100,160,80,260,320,260,320,1,resistance_9.jpg,resistance_9_place.png,resistance_9_preview.png
+resistance_10,ヒップアブダクション,resistance,110,160,80,270,320,270,320,1,resistance_10.jpg,resistance_10_place.png,resistance_10_preview.png
+resistance_11,ヒップアダクション,resistance,100,150,80,260,310,260,310,1,resistance_11.jpg,resistance_11_place.png,resistance_11_preview.png
+resistance_12,ロータリートルソー,resistance,120,110,80,280,270,280,270,1,resistance_12.jpg,resistance_12_place.png,resistance_12_preview.png
+resistance_13,チェストプレス,resistance,110,150,80,270,310,270,310,1,resistance_13.jpg,resistance_13_place.png,resistance_13_preview.png
+resistance_14,ローロー,resistance,110,160,80,270,320,270,320,1,resistance_14.jpg,resistance_14_place.png,resistance_14_preview.png
+resistance_15,アブドミナル,resistance,110,120,80,270,280,270,280,1,resistance_15.jpg,resistance_15_place.png,resistance_15_preview.png
+freeweight_1,パワーラック,freeweight,130,160,80,290,320,290,320,2,freeweight_1.jpg,freeweight_1_place.png,freeweight_1_preview.png
+freeweight_2,インクラインチェストプレス,freeweight,150,170,80,310,330,310,330,1,freeweight_2.jpg,freeweight_2_place.png,freeweight_2_preview.png
+freeweight_3,プリチャーカール,freeweight,80,100,80,240,260,240,260,1,freeweight_3.jpg,freeweight_3_place.png,freeweight_3_preview.png
+freeweight_4,チンニング＆ディップス,freeweight,120,130,80,280,290,280,290,1,freeweight_4.jpg,freeweight_4_place.png,freeweight_4_preview.png
+freeweight_5,BULL ベンチプレス台,freeweight,130,170,80,290,330,290,330,1,freeweight_5.jpg,freeweight_5_place.png,freeweight_5_preview.png
+freeweight_6,スミスマシン,freeweight,210,140,80,370,300,370,300,3,freeweight_6.jpg,freeweight_6_place.png,freeweight_6_preview.png
+freeweight_7,CYBEX ケーブルマシン,freeweight,160,110,80,320,270,320,270,1,freeweight_7.jpg,freeweight_7_place.png,freeweight_7_preview.png
+freeweight_8,technogym ケーブルマシン,freeweight,150,100,80,310,260,310,260,1,freeweight_8.jpg,freeweight_8_place.png,freeweight_8_preview.png
+freeweight_9,ケーブルステーション,freeweight,450,350,80,610,510,610,510,1,freeweight_9.jpg,freeweight_9_place.png,freeweight_9_preview.png
+freeweight_10,ダンベルラック,freeweight,250,80,80,410,240,410,240,1,freeweight_10.jpg,freeweight_10_place.png,freeweight_10_preview.png
+freeweight_11,アジャスタブルベンチ,freeweight,60,130,80,220,290,220,290,5,freeweight_11.jpg,freeweight_11_place.png,freeweight_11_preview.png
+freeweight_12,45°レッグプレス,freeweight,160,240,80,320,400,320,400,1,freeweight_12.jpg,freeweight_12_place.png,freeweight_12_preview.png
