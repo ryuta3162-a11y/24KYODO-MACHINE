@@ -210,7 +210,8 @@ async function fetchExisting(used) {
     if (isHipCombo) {
       const parts = [
         { id: "resistance_10", label: "ヒップアブダクション", photoKey: "resistance_10" },
-        { id: "resistance_11", label: "ヒップアダクション", photoKey: "resistance_11" },
+        // アダクションはアブと同寸法・同アート（画像はファイル複製）
+        { id: "resistance_11", label: "ヒップアダクション", photoKey: "resistance_10" },
       ];
       for (const part of parts) {
         if (used.has(part.id)) continue;
