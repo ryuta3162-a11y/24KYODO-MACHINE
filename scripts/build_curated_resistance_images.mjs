@@ -44,10 +44,7 @@ const DIRECT = {
   ],
 };
 
-const REFORMER_SRC = path.join(
-  "C:/Users/ryuta-kusaka/.cursor/projects/c-Users-ryuta-kusaka-Documents-GitHub-24KYODO-MACHINE/assets",
-  "c__Users_ryuta-kusaka_AppData_Roaming_Cursor_User_workspaceStorage_1981706a66fa0f0b56953ff92cb5339e_images_ChatGPT_Image_2026_9_13__13_59_03-a725d01e-a5bc-4af0-9740-65e1a71ce30e.jpg"
-);
+const REFORMER_SRC = path.join(ROOT, "pilates_reformer.jpg");
 
 function fetchBuf(url, redirects = 0) {
   return new Promise((resolve, reject) => {

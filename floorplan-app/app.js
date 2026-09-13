@@ -8,7 +8,7 @@ const AUTHOR_KEY = "kyodo-floorplan-author";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
 /** 画像差し替え時にブラウザ/CDNキャッシュを切る */
-const ART_VER = "20260913j";
+const ART_VER = "20260913k";
 const CSV_URL = "../floorplan/machines.csv";
 const CATALOG_URL = "../floorplan/machines_catalog.json";
 const MACHINES_API = "/api/machines";
@@ -406,7 +406,8 @@ function renderPalette() {
   const q = state.query.trim().toLowerCase();
   const list = state.catalog.filter((m) => {
     if (remainingOf(m.id) <= 0) return false;
-    if (machineSource(m) !== state.source) return false;
+    // ピラティスは新規のみのため、既存/新規タブをまたいで表示
+    if (state.filter !== "pilates" && machineSource(m) !== state.source) return false;
     if (state.filter !== "all" && machineGenre(m) !== state.filter) return false;
     if (!q) return true;
     return (
