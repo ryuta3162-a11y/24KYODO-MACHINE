@@ -1,0 +1,19 @@
+﻿{
+    "scale":  0.5,
+    "planCm":  [
+                   3388,
+                   2058
+               ],
+    "measuredCellPx":  40,
+    "planPx":  [
+                   3388,
+                   2058
+               ],
+    "source":  "floor_2f_v6_full.png",
+    "targetCellPx":  20,
+    "note":  "1px=1cm, 1 grid=20cm",
+    "sourcePx":  [
+                     6777,
+                     4117
+                 ]
+}

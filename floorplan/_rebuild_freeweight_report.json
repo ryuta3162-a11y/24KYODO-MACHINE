@@ -1,0 +1,86 @@
+[
+  {
+    "id": "freeweight_1",
+    "status": "ok",
+    "src": "freeweight_1.jpg",
+    "W": 720,
+    "H": 900
+  },
+  {
+    "id": "freeweight_2",
+    "status": "ok",
+    "src": "freeweight_2.jpg",
+    "W": 619,
+    "H": 900
+  },
+  {
+    "id": "freeweight_3",
+    "status": "ok",
+    "src": "freeweight_3.jpg",
+    "W": 655,
+    "H": 900
+  },
+  {
+    "id": "freeweight_4",
+    "status": "ok",
+    "src": "freeweight_4.jpg",
+    "W": 900,
+    "H": 808
+  },
+  {
+    "id": "freeweight_5",
+    "status": "ok",
+    "src": "freeweight_5.jpg",
+    "W": 688,
+    "H": 900
+  },
+  {
+    "id": "freeweight_6",
+    "status": "ok",
+    "src": "freeweight_6.jpg",
+    "W": 900,
+    "H": 630
+  },
+  {
+    "id": "freeweight_7",
+    "status": "ok",
+    "src": "freeweight_7.jpg",
+    "W": 900,
+    "H": 749
+  },
+  {
+    "id": "freeweight_8",
+    "status": "ok",
+    "src": "freeweight_8.jpg",
+    "W": 745,
+    "H": 900
+  },
+  {
+    "id": "freeweight_9",
+    "status": "ok",
+    "src": "freeweight_9.jpg",
+    "W": 563,
+    "H": 900
+  },
+  {
+    "id": "freeweight_10",
+    "status": "ok",
+    "src": "freeweight_10.jpg",
+    "W": 252,
+    "H": 900
+  },
+  {
+    "id": "freeweight_11",
+    "status": "ok",
+    "src": "freeweight_11.jpg",
+    "W": 450,
+    "H": 900
+  },
+  {
+    "id": "freeweight_12",
+    "status": "ok",
+    "src": "freeweight_12.jpg",
+    "W": 614,
+    "H": 900
+  }
+]

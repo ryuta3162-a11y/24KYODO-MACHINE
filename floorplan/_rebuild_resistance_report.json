@@ -1,0 +1,100 @@
+[
+  {
+    "id": "resistance_1",
+    "status": "ok",
+    "src": "resistance_1.jpg",
+    "W": 555,
+    "H": 900
+  },
+  {
+    "id": "resistance_2",
+    "status": "ok",
+    "src": "resistance_2.jpg",
+    "W": 806,
+    "H": 900
+  },
+  {
+    "id": "resistance_3",
+    "status": "ok",
+    "src": "resistance_3.jpg",
+    "W": 900,
+    "H": 810
+  },
+  {
+    "id": "resistance_4",
+    "status": "ok",
+    "src": "resistance_4.jpg",
+    "W": 647,
+    "H": 900
+  },
+  {
+    "id": "resistance_5",
+    "status": "ok",
+    "src": "resistance_5.jpg",
+    "W": 716,
+    "H": 900
+  },
+  {
+    "id": "resistance_6",
+    "status": "ok",
+    "src": "resistance_6.jpg",
+    "W": 394,
+    "H": 900
+  },
+  {
+    "id": "resistance_7",
+    "status": "ok",
+    "src": "resistance_7.jpg",
+    "W": 554,
+    "H": 900
+  },
+  {
+    "id": "resistance_8",
+    "status": "ok",
+    "src": "resistance_8.jpg",
+    "W": 772,
+    "H": 900
+  },
+  {
+    "id": "resistance_9",
+    "status": "ok",
+    "src": "resistance_9.jpg",
+    "W": 615,
+    "H": 900
+  },
+  {
+    "id": "resistance_10_11",
+    "status": "ok",
+    "src": "resistance_10.jpg",
+    "W": 464,
+    "H": 900
+  },
+  {
+    "id": "resistance_12",
+    "status": "ok",
+    "src": "resistance_12.jpg",
+    "W": 900,
+    "H": 885
+  },
+  {
+    "id": "resistance_13",
+    "status": "ok",
+    "src": "resistance_13.jpg",
+    "W": 900,
+    "H": 708
+  },
+  {
+    "id": "resistance_14",
+    "status": "ok",
+    "src": "resistance_14.jpg",
+    "W": 559,
+    "H": 900
+  },
+  {
+    "id": "resistance_15",
+    "status": "ok",
+    "src": "resistance_15.jpg",
+    "W": 623,
+    "H": 900
+  }
+]

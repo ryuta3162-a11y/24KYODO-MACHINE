@@ -1,0 +1,463 @@
+[
+  {
+    "id": "new_hd_athletic_nx_half_half_combo_rack",
+    "status": "ok",
+    "used": "https://www.lifefitness.com/Kentico13CoreBase/media/LFMedia/LifeFitnessImages/MediaSync/77-9-hammer-strength-hd-athletic-nx-half-half-23094203942034.jpg?h=630&w=1200",
+    "W": 450,
+    "H": 900,
+    "ratio": 0.5,
+    "expect": 0.5
+  },
+  {
+    "id": "new_impact_suppression_platform_platform床材",
+    "status": "ok",
+    "used": "https://www.lifefitness.com/Kentico13CoreBase/media/LFMedia/LifeFitnessImages/MediaSync/296-819-hs-lifting-platform-45-left-v2.png?h=630&w=1200",
+    "W": 900,
+    "H": 720,
+    "ratio": 1.25,
+    "expect": 1.25
+  },
+  {
+    "id": "new_ラバーダンベル_eva_d104_42_5kg_60kg追加",
+    "status": "ok",
+    "used": "https://evolgear.com/img/product/eva-d104.webp",
+    "W": 900,
+    "H": 262,
+    "ratio": 3.435,
+    "expect": 3.435
+  },
+  {
+    "id": "new_アジャスタブルインクラインベンチ_evrb_l139",
+    "status": "ok",
+    "used": "https://evolgear.com/img/product/evrb-l139.webp",
+    "W": 900,
+    "H": 489,
+    "ratio": 1.84,
+    "expect": 1.842
+  },
+  {
+    "id": "new_selectorized_3d_multi_abductor_pro",
+    "status": "ok",
+    "used": "https://www.precor.com/www.precor.com/products/GSL0622/og",
+    "W": 900,
+    "H": 374,
+    "ratio": 2.406,
+    "expect": 2.405
+  },
+  {
+    "id": "new_hip_thrust_elite",
+    "status": "ok",
+    "used": "https://www.precor.com/www.precor.com/products/GPL0612/og",
+    "W": 781,
+    "H": 900,
+    "ratio": 0.868,
+    "expect": 0.867
+  },
+  {
+    "id": "new_deadlift_elite",
+    "status": "ok",
+    "used": "https://www.precor.com/www.precor.com/products/GPL0551/og",
+    "W": 900,
+    "H": 814,
+    "ratio": 1.106,
+    "expect": 1.106
+  },
+  {
+    "id": "new_reloaded_t_bar_row",
+    "status": "ok",
+    "used": "https://www.myarsenalstrength.com/hubfs/2026%20Product%20Updates/9009/9009_WG_BG_1.png",
+    "W": 706,
+    "H": 900,
+    "ratio": 0.784,
+    "expect": 0.785
+  },
+  {
+    "id": "new_pure_kraft_high_row_dual",
+    "status": "ok",
+    "used": "https://gym80.de/wp-content/uploads/2025/07/4340_pure_kraft_high_row_dual_NC.webp",
+    "W": 786,
+    "H": 900,
+    "ratio": 0.873,
+    "expect": 0.873
+  },
+  {
+    "id": "new_pure_kraft_low_row_dual",
+    "status": "ok",
+    "used": "https://cdn.prod.website-files.com/63fca1753f0de20d157dcc93/645cd1c7829d83ca6c24c5d1_642c0f81297b5604b0283e49_gym80_4355_pure_kraft_bizepsmaschine_dual_overview-1536x931.jpeg",
+    "W": 900,
+    "H": 728,
+    "ratio": 1.236,
+    "expect": 1.236
+  },
+  {
+    "id": "new_pure_kraft_bent_over_row",
+    "status": "ok",
+    "used": "https://gym80.de/wp-content/uploads/2025/07/4318_pure_kraf_bodenhantel_multi-grip_NC.webp",
+    "W": 522,
+    "H": 900,
+    "ratio": 0.58,
+    "expect": 0.58
+  },
+  {
+    "id": "new_seated_row_machine_dual_row系",
+    "status": "ok",
+    "used": "https://gym80.de/wp-content/uploads/2025/07/3040_rudermaschine_NC.webp",
+    "W": 831,
+    "H": 900,
+    "ratio": 0.923,
+    "expect": 0.923
+  },
+  {
+    "id": "new_pure_kraft_shoulder_lateral_raise_dual",
+    "status": "ok",
+    "used": "https://cdn.prod.website-files.com/63fca1753f0de20d157dcc93/645cd1cc45e064637cbda02a_642c0f87c01d2b38b79f901c_gym80_4325_pure_kraft_seithebemaschine_dual_overview-1536x960.jpeg",
+    "W": 570,
+    "H": 900,
+    "ratio": 0.633,
+    "expect": 0.633
+  },
+  {
+    "id": "new_pure_kraft_hack_squat",
+    "status": "ok",
+    "used": "https://gym80.de/wp-content/uploads/2026/03/gym80_4159n_pure_kraft_hack_squat_NC_overview.webp",
+    "W": 525,
+    "H": 900,
+    "ratio": 0.583,
+    "expect": 0.584
+  },
+  {
+    "id": "new_pure_kraft_lying_leg_curl",
+    "status": "ok",
+    "used": "https://gym80.de/wp-content/uploads/2026/04/gym80_4392_pure_kraft_standing_leg_extension_overview.webp",
+    "W": 701,
+    "H": 900,
+    "ratio": 0.779,
+    "expect": 0.779
+  },
+  {
+    "id": "new_pure_kraft_leg_extension",
+    "status": "ok",
+    "used": "https://gym80.de/wp-content/uploads/2025/07/4336n_pure_kraft_beinstreckermaschine_NC.webp",
+    "W": 887,
+    "H": 900,
+    "ratio": 0.986,
+    "expect": 0.985
+  },
+  {
+    "id": "new_pure_kraft_55_degrees_standing_calf_raise",
+    "status": "ok",
+    "used": "https://gym80.de/wp-content/uploads/2025/07/4345_pure_kraft_55_grad_wadenmaschine_NC.webp",
+    "W": 683,
+    "H": 900,
+    "ratio": 0.759,
+    "expect": 0.759
+  },
+  {
+    "id": "new_pure_kraft_belt_squat",
+    "status": "ok",
+    "used": "https://gym80.de/wp-content/uploads/2025/07/4360_pure_kraft_belt_squat_NC.webp",
+    "W": 900,
+    "H": 730,
+    "ratio": 1.233,
+    "expect": 1.233
+  },
+  {
+    "id": "new_pure_kraft_pendulum_squat",
+    "status": "ok",
+    "used": "https://gym80.de/wp-content/uploads/2026/03/gym80_4353n_pure_kraft_pendulum_squat_NC_overview.webp",
+    "W": 398,
+    "H": 900,
+    "ratio": 0.442,
+    "expect": 0.442
+  },
+  {
+    "id": "new_pure_kraft_biceps_curl_dual",
+    "status": "ok",
+    "used": "https://cdn.prod.website-files.com/63fca1753f0de20d157dcc93/645cd1c7829d83ca6c24c5d1_642c0f81297b5604b0283e49_gym80_4355_pure_kraft_bizepsmaschine_dual_overview-1536x931.jpeg",
+    "W": 559,
+    "H": 900,
+    "ratio": 0.621,
+    "expect": 0.621
+  },
+  {
+    "id": "new_pure_kraft_triceps_extension",
+    "status": "ok",
+    "used": "https://gym80.de/wp-content/uploads/2025/07/4339n_pure_kraft_trizepsmaschine_NC.webp",
+    "W": 830,
+    "H": 900,
+    "ratio": 0.922,
+    "expect": 0.922
+  },
+  {
+    "id": "new_elc_シーテッドロウ",
+    "status": "ok",
+    "used": "https://ecoleco-fitness.com/storage/category/introduction_image/79/ZC83AIXgg5343py2OTwbHWxJS01bDEu7HrZFk45A.jpg",
+    "W": 679,
+    "H": 900,
+    "ratio": 0.754,
+    "expect": 0.755
+  },
+  {
+    "id": "new_elc_ラテラルレイズ",
+    "status": "ok",
+    "used": "https://ecoleco-fitness.com/storage/category/introduction_image/79/ZC83AIXgg5343py2OTwbHWxJS01bDEu7HrZFk45A.jpg",
+    "W": 900,
+    "H": 665,
+    "ratio": 1.353,
+    "expect": 1.353
+  },
+  {
+    "id": "new_hammer_strength_select_leg_extension",
+    "status": "ok",
+    "used": "https://www.lifefitness.com/Kentico13CoreBase/media/LFMedia/LifeFitnessImages/MediaSync/15-336-hammer-strength-select-leg-extension-image-new.jpg",
+    "W": 787,
+    "H": 900,
+    "ratio": 0.874,
+    "expect": 0.874
+  },
+  {
+    "id": "new_hammer_strength_select_leg_curl",
+    "status": "ok",
+    "used": "https://www.lifefitness.com/Kentico13CoreBase/media/LFMedia/LifeFitnessImages/MediaSync/15-336-hammer-strength-select-leg-extension-image-new.jpg?h=630&w=1200",
+    "W": 553,
+    "H": 900,
+    "ratio": 0.614,
+    "expect": 0.614
+  },
+  {
+    "id": "new_abdominal_crunch",
+    "status": "ok",
+    "used": "https://www.lifefitness.com/Kentico13CoreBase/media/LFMedia/LifeFitnessImages/MediaSync/15-336-hammer-strength-select-leg-extension-image-new.jpg?h=630&w=1200",
+    "W": 507,
+    "H": 900,
+    "ratio": 0.563,
+    "expect": 0.563
+  },
+  {
+    "id": "new_assist_dip_chin",
+    "status": "ok",
+    "used": "https://www.lifefitness.com/Kentico13CoreBase/media/LFMedia/LifeFitnessImages/MediaSync/15-336-hammer-strength-select-leg-extension-image-new.jpg?h=630&w=1200",
+    "W": 862,
+    "H": 900,
+    "ratio": 0.958,
+    "expect": 0.958
+  },
+  {
+    "id": "new_insignia_series_chest_press",
+    "status": "ok",
+    "used": "https://www.lifefitness.com/Kentico13CoreBase/media/LFMedia/LifeFitnessImages/MediaSync/464-965-chest-press.png?h=630&w=1200",
+    "W": 900,
+    "H": 707,
+    "ratio": 1.273,
+    "expect": 1.273
+  },
+  {
+    "id": "new_standing_abductor",
+    "status": "fail",
+    "error": "page 403"
+  },
+  {
+    "id": "new_skierg_pm5_スタンド付",
+    "status": "ok",
+    "used": "https://cms.concept2.com/sites/default/files/styles/max_2048/public/2024-05/SKI_ERG_BLACK_FLYWHEEL_3Q.png?itok=C9QzT-J5",
+    "W": 425,
+    "H": 900,
+    "ratio": 0.472,
+    "expect": 0.472
+  },
+  {
+    "id": "new_rowerg",
+    "status": "ok",
+    "used": "https://cms.concept2.com/sites/default/files/styles/max_2048/public/2024-02/RowERG_Standard_FlyFrontAngle_Gator_1920px.png?itok=vdsr5YUv",
+    "W": 225,
+    "H": 900,
+    "ratio": 0.25,
+    "expect": 0.25
+  },
+  {
+    "id": "new_bikeerg",
+    "status": "ok",
+    "used": "https://cms.concept2.com/sites/default/files/styles/max_2048/public/2024-02/BIKE_ERG_BLACK_F3Q_1_1920px.png?itok=NcPMMxn1",
+    "W": 450,
+    "H": 900,
+    "ratio": 0.5,
+    "expect": 0.5
+  },
+  {
+    "id": "new_power_max_v3_pro",
+    "status": "ok",
+    "used": "https://img.konami.com/sportsclub/online/shop/aerobike/power-max-v3/img/ogp.jpg",
+    "W": 506,
+    "H": 900,
+    "ratio": 0.562,
+    "expect": 0.562
+  },
+  {
+    "id": "new_powermill_climber",
+    "status": "ok",
+    "used": "https://www.lifefitness.com/Kentico13CoreBase/media/LFMedia/LifeFitnessImages/MediaSync/190-528-life-fitness-integrity-series-powermill-with-24-inch-se4-in-titanium.png?h=630&w=1200",
+    "W": 529,
+    "H": 900,
+    "ratio": 0.588,
+    "expect": 0.587
+  },
+  {
+    "id": "new_c50_climbmill",
+    "status": "fail",
+    "error": "page 404"
+  },
+  {
+    "id": "new_10g_stepmill",
+    "status": "ok",
+    "used": "https://www.corehandf.com/cdn/shop/collections/StairMaster-4G-15in-OpenHub-Console-Product-Image-WEB.png?v=1773700832",
+    "W": 484,
+    "H": 900,
+    "ratio": 0.538,
+    "expect": 0.537
+  },
+  {
+    "id": "new_curve_treadmill",
+    "status": "ok",
+    "used": "https://www.woodway.com/wp-content/uploads/2024/02/curve-thumbnail@2x.png",
+    "W": 425,
+    "H": 900,
+    "ratio": 0.472,
+    "expect": 0.472
+  },
+  {
+    "id": "new_integrity_treadmill",
+    "status": "ok",
+    "used": "https://www.lifefitness.com/Kentico13CoreBase/media/LFMedia/LifeFitnessImages/Equipment/Cardio/Symbio/Runner/Cardio-Symbio-Runner-Black-Onyx.png?h=630&w=1200",
+    "W": 396,
+    "H": 900,
+    "ratio": 0.44,
+    "expect": 0.44
+  },
+  {
+    "id": "new_integrity_cross_trainer",
+    "status": "ok",
+    "used": "https://www.lifefitness.com/Kentico13CoreBase/media/LFMedia/LifeFitnessImages/Equipment/Cardio/Symbio/Incline%20Elliptical/Cardio-Symbio-Incline-Elliptical-Black-Onyx.png?h=630&w=1200",
+    "W": 301,
+    "H": 900,
+    "ratio": 0.334,
+    "expect": 0.335
+  },
+  {
+    "id": "new_oni_鬼コンボラック_ipf公認",
+    "status": "ok",
+    "used": "https://bukiya.net/cdn/shop/files/ONI373-16-1.jpg?v=1761108737",
+    "W": 611,
+    "H": 900,
+    "ratio": 0.679,
+    "expect": 0.679
+  },
+  {
+    "id": "new_フラットベンチ_evrb_c135",
+    "status": "ok",
+    "used": "https://evolgear.com/img/product/evrb-c135.webp",
+    "W": 900,
+    "H": 507,
+    "ratio": 1.775,
+    "expect": 1.776
+  },
+  {
+    "id": "new_オリンピックバー_eva_5000",
+    "status": "ok",
+    "used": "https://evolgear.com/img/product/eva-5000.webp",
+    "W": 82,
+    "H": 900,
+    "ratio": 0.091,
+    "expect": 0.023
+  },
+  {
+    "id": "new_プレートツリー_evrb_c154",
+    "status": "ok",
+    "used": "https://evolgear.com/img/product/evrb-c154.webp",
+    "W": 900,
+    "H": 856,
+    "ratio": 1.051,
+    "expect": 1.052
+  },
+  {
+    "id": "new_rogue_deadlift_jack",
+    "status": "ok",
+    "used": "https://assets.roguefitness.com/f_auto,q_auto,c_limit,w_1600,b_rgb:ffffff/v1/catalog/Strength%20Equipment/Training%20Accessories%20/Deadlift%20Bar%20Jack/RA1523/RA1523-H_mbny3v_alk6bg.png",
+    "W": 404,
+    "H": 900,
+    "ratio": 0.449,
+    "expect": 0.449
+  },
+  {
+    "id": "new_wall_ball",
+    "status": "fail",
+    "error": "page 404"
+  },
+  {
+    "id": "new_kettlebell_set",
+    "status": "ok",
+    "used": "https://assets.roguefitness.com/f_auto,q_auto,c_limit,w_1600,b_rgb:ffffff/v1/catalog/Conditioning/Strength%20Equipment/Kettlebells/IP0670/IP0670-H_j6gkfw.png",
+    "W": 900,
+    "H": 540,
+    "ratio": 1.667,
+    "expect": 1.667
+  },
+  {
+    "id": "new_アタッチメントラック",
+    "status": "ok",
+    "used": "https://evolgear.com/img/product/evpr-096.webp",
+    "W": 841,
+    "H": 900,
+    "ratio": 0.934,
+    "expect": 0.935
+  },
+  {
+    "id": "new_tire_flip_strongman_tire",
+    "status": "ok",
+    "used": "https://warriors-gym.com/wp-content/uploads/2026/03/gymmap_PC_EN-1.png",
+    "W": 900,
+    "H": 900,
+    "ratio": 1,
+    "expect": 1
+  },
+  {
+    "id": "new_dog_sled_1_2",
+    "status": "ok",
+    "used": "https://assets.roguefitness.com/f_auto,q_auto,c_limit,w_1600,b_rgb:ffffff/v1/catalog/Strength%20Equipment/Strength%20Training/Sleds/XX2044/XX2044-H_jcdfko.png",
+    "W": 538,
+    "H": 900,
+    "ratio": 0.598,
+    "expect": 0.598
+  },
+  {
+    "id": "new_farmer_s_walk_handles",
+    "status": "fail",
+    "error": "no image"
+  },
+  {
+    "id": "new_lb_1_rogue_10_inch_log_bar",
+    "status": "ok",
+    "used": "https://assets.roguefitness.com/f_auto,q_auto,c_limit,w_1600,b_rgb:ffffff/v1/catalog/Weightlifting%20Bars%20and%20Plates/Barbells/Specialty%20Barbells/RA0006/RA0006-H_qov9u5.png",
+    "W": 115,
+    "H": 900,
+    "ratio": 0.128,
+    "expect": 0.128
+  },
+  {
+    "id": "new_y_2_yoke",
+    "status": "ok",
+    "used": "https://assets.roguefitness.com/f_auto,q_auto,c_limit,w_1600,b_rgb:ffffff/v1/catalog/Strength%20Equipment/Strength%20Training/Yokes/XX1482/XX1482-H_dgypbz.png",
+    "W": 865,
+    "H": 900,
+    "ratio": 0.961,
+    "expect": 0.961
+  },
+  {
+    "id": "new_strongman_sandbag_set",
+    "status": "ok",
+    "used": "https://assets.roguefitness.com/f_auto,q_auto,c_limit,w_1600,b_rgb:ffffff/v1/catalog/Conditioning/Strength%20Equipment/Sand%20Bags/SANDBAGS/SANDBAGS-H_xsnold.png",
+    "W": 900,
+    "H": 900,
+    "ratio": 1,
+    "expect": 1
+  }
+]

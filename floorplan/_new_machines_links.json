@@ -1,0 +1,373 @@
+﻿[
+    {
+        "id":  "new_hd_athletic_nx_half_half_combo_rack",
+        "name":  "HD Athletic NX Half Half Combo Rack",
+        "link":  "HD Athletic NX Half Half Combo Rack | Hammer Strength",
+        "width_cm":  150,
+        "length_cm":  300
+    },
+    {
+        "id":  "new_impact_suppression_platform_platform床材",
+        "name":  "Impact Suppression Platform / Platform床材",
+        "link":  "https://www.lifefitness.com/en-us/catalog/strength-training/racks-rigs-platforms/impact-suppression-platform",
+        "width_cm":  240,
+        "length_cm":  192
+    },
+    {
+        "id":  "new_ラバーダンベル_eva_d104_42_5kg_60kg追加",
+        "name":  "ラバーダンベル EVA-D104 42.5kg〜60kg追加",
+        "link":  "https://evolgear.com/product/eva-d104.html",
+        "width_cm":  213,
+        "length_cm":  62
+    },
+    {
+        "id":  "new_アジャスタブルインクラインベンチ_evrb_l139",
+        "name":  "アジャスタブルインクラインベンチ EVRB-L139",
+        "link":  "https://evolgear.com/product/evrb-l139.html",
+        "width_cm":  140,
+        "length_cm":  76
+    },
+    {
+        "id":  "new_selectorized_3d_multi_abductor_pro",
+        "name":  "Selectorized 3D Multi-Abductor Pro",
+        "link":  "https://www.precor.com/ja-JP/strength/glutebuilder/selectorized",
+        "width_cm":  178,
+        "length_cm":  74
+    },
+    {
+        "id":  "new_hip_thrust_elite",
+        "name":  "Hip Thrust Elite",
+        "link":  "https://www.precor.com/ja-JP/strength/glutebuilder/selectorized",
+        "width_cm":  170,
+        "length_cm":  196
+    },
+    {
+        "id":  "new_deadlift_elite",
+        "name":  "Deadlift Elite",
+        "link":  "https://www.precor.com/en-US/strength/glutebuilder",
+        "width_cm":  188,
+        "length_cm":  170
+    },
+    {
+        "id":  "new_reloaded_t_bar_row",
+        "name":  "Reloaded T Bar Row",
+        "link":  "https://www.myarsenalstrength.com/strength-equipment/reloaded/upper-body-reloaded/reloaded-t-bar-row",
+        "width_cm":  142,
+        "length_cm":  181
+    },
+    {
+        "id":  "new_pure_kraft_high_row_dual",
+        "name":  "Pure Kraft High Row Dual",
+        "link":  "https://gym80.de/en/product/4340/",
+        "width_cm":  138,
+        "length_cm":  158
+    },
+    {
+        "id":  "new_pure_kraft_low_row_dual",
+        "name":  "Pure Kraft Low Row Dual",
+        "link":  "https://www.gym80.co.uk/products/pure-kraft-low-row",
+        "width_cm":  183,
+        "length_cm":  148
+    },
+    {
+        "id":  "new_pure_kraft_bent_over_row",
+        "name":  "Pure Kraft Bent Over Row",
+        "link":  "https://gym80.de/en/product/4318/",
+        "width_cm":  102,
+        "length_cm":  176
+    },
+    {
+        "id":  "new_seated_row_machine_dual_row系",
+        "name":  "Seated Row Machine / Dual Row系",
+        "link":  "https://gym80.de/en/product/3040/",
+        "width_cm":  120,
+        "length_cm":  130
+    },
+    {
+        "id":  "new_pure_kraft_shoulder_lateral_raise_dual",
+        "name":  "Pure Kraft Shoulder Lateral Raise Dual",
+        "link":  "https://www.gym80.co.uk/products/pure-kraft-shoulder-lateral-raise-dual",
+        "width_cm":  88,
+        "length_cm":  139
+    },
+    {
+        "id":  "new_pure_kraft_hack_squat",
+        "name":  "Pure Kraft Hack Squat",
+        "link":  "https://gym80.de/en/product/4159n/",
+        "width_cm":  129,
+        "length_cm":  221
+    },
+    {
+        "id":  "new_pure_kraft_lying_leg_curl",
+        "name":  "Pure Kraft Lying Leg Curl",
+        "link":  "https://gym80.de/en/product/4337n/",
+        "width_cm":  127,
+        "length_cm":  163
+    },
+    {
+        "id":  "new_pure_kraft_leg_extension",
+        "name":  "Pure Kraft Leg Extension",
+        "link":  "https://gym80.de/en/product/4336n/",
+        "width_cm":  132,
+        "length_cm":  134
+    },
+    {
+        "id":  "new_pure_kraft_55_degrees_standing_calf_raise",
+        "name":  "Pure Kraft 55 Degrees Standing Calf Raise",
+        "link":  "https://gym80.de/en/product/4345/",
+        "width_cm":  101,
+        "length_cm":  133
+    },
+    {
+        "id":  "new_pure_kraft_belt_squat",
+        "name":  "Pure Kraft Belt Squat",
+        "link":  "https://gym80.de/en/product/4360/",
+        "width_cm":  196,
+        "length_cm":  159
+    },
+    {
+        "id":  "new_pure_kraft_pendulum_squat",
+        "name":  "Pure Kraft Pendulum Squat",
+        "link":  "https://gym80.de/en/product/4353n/",
+        "width_cm":  107,
+        "length_cm":  242
+    },
+    {
+        "id":  "new_pure_kraft_biceps_curl_dual",
+        "name":  "Pure Kraft Biceps Curl Dual",
+        "link":  "https://www.gym80.co.uk/products/pure-kraft-biceps-curl-dual",
+        "width_cm":  95,
+        "length_cm":  153
+    },
+    {
+        "id":  "new_pure_kraft_triceps_extension",
+        "name":  "Pure Kraft Triceps Extension",
+        "link":  "https://gym80.de/en/product/4339n/",
+        "width_cm":  118,
+        "length_cm":  128
+    },
+    {
+        "id":  "new_elc_シーテッドロウ",
+        "name":  "ELC シーテッドロウ",
+        "link":  "https://ecoleco-fitness.com/expert-model/plate-load/elc-series",
+        "width_cm":  157,
+        "length_cm":  208
+    },
+    {
+        "id":  "new_elc_ラテラルレイズ",
+        "name":  "ELC ラテラルレイズ",
+        "link":  "https://ecoleco-fitness.com/expert-model/plate-load/elc-series",
+        "width_cm":  157,
+        "length_cm":  116
+    },
+    {
+        "id":  "new_hammer_strength_select_leg_extension",
+        "name":  "Hammer Strength Select Leg Extension",
+        "link":  "https://www.lifefitness.com/en-us/catalog/strength-training/selectorized/hammer-strength-select",
+        "width_cm":  104,
+        "length_cm":  119
+    },
+    {
+        "id":  "new_hammer_strength_select_leg_curl",
+        "name":  "Hammer Strength Select Leg Curl",
+        "link":  "https://www.lifefitness.com/en-us/catalog/strength-training/selectorized/hammer-strength-select",
+        "width_cm":  86,
+        "length_cm":  140
+    },
+    {
+        "id":  "new_abdominal_crunch",
+        "name":  "Abdominal Crunch",
+        "link":  "https://www.lifefitness.com/en-us/catalog/strength-training/selectorized/hammer-strength-select",
+        "width_cm":  89,
+        "length_cm":  158
+    },
+    {
+        "id":  "new_assist_dip_chin",
+        "name":  "Assist Dip Chin",
+        "link":  "https://www.lifefitness.com/en-us/catalog/strength-training/selectorized/hammer-strength-select",
+        "width_cm":  113,
+        "length_cm":  118
+    },
+    {
+        "id":  "new_insignia_series_chest_press",
+        "name":  "Insignia Series Chest Press",
+        "link":  "https://www.lifefitness.com/en-hk/catalog/strength-training/selectorized/insignia-series-chest-press",
+        "width_cm":  140,
+        "length_cm":  110
+    },
+    {
+        "id":  "new_standing_abductor",
+        "name":  "Standing Abductor",
+        "link":  "https://www.panattasport.com/it/fit-evo/standing-abductor-machine/",
+        "width_cm":  80,
+        "length_cm":  160
+    },
+    {
+        "id":  "new_skierg_pm5_スタンド付",
+        "name":  "SkiErg PM5 スタンド付",
+        "link":  "https://www.concept2.com/ergs/skierg",
+        "width_cm":  60,
+        "length_cm":  127
+    },
+    {
+        "id":  "new_rowerg",
+        "name":  "RowErg",
+        "link":  "https://www.concept2.com/ergs/rowerg",
+        "width_cm":  61,
+        "length_cm":  244
+    },
+    {
+        "id":  "new_bikeerg",
+        "name":  "BikeErg",
+        "link":  "https://www.concept2.com/ergs/bikeerg",
+        "width_cm":  61,
+        "length_cm":  122
+    },
+    {
+        "id":  "new_power_max_v3_pro",
+        "name":  "POWER MAX V3 Pro",
+        "link":  "https://www.konami.com/sportsclub/online/shop/aerobike/power-max-v3/",
+        "width_cm":  59,
+        "length_cm":  105
+    },
+    {
+        "id":  "new_powermill_climber",
+        "name":  "PowerMill Climber",
+        "link":  "https://www.lifefitness.com/en-us/catalog/cardio/stair-climbers-stepper-machines/powermill-climber",
+        "width_cm":  84,
+        "length_cm":  143
+    },
+    {
+        "id":  "new_c50_climbmill",
+        "name":  "C50 ClimbMill",
+        "link":  "https://world.matrixfitness.com/eng/home/climbmills/c50",
+        "width_cm":  72,
+        "length_cm":  135
+    },
+    {
+        "id":  "new_10g_stepmill",
+        "name":  "10G StepMill",
+        "link":  "https://www.corehandf.com/collections/stairmaster",
+        "width_cm":  86,
+        "length_cm":  160
+    },
+    {
+        "id":  "new_curve_treadmill",
+        "name":  "Curve Treadmill",
+        "link":  "https://www.woodway.com/treadmills/curve/",
+        "width_cm":  84,
+        "length_cm":  178
+    },
+    {
+        "id":  "new_integrity_treadmill",
+        "name":  "Integrity+ Treadmill",
+        "link":  "https://www.lifefitness.com/en-us/catalog/cardio/treadmills",
+        "width_cm":  92,
+        "length_cm":  209
+    },
+    {
+        "id":  "new_integrity_cross_trainer",
+        "name":  "Integrity+ Cross Trainer",
+        "link":  "https://www.lifefitness.com/en-us/catalog/cardio/ellipticals",
+        "width_cm":  73,
+        "length_cm":  218
+    },
+    {
+        "id":  "new_oni_鬼コンボラック_ipf公認",
+        "name":  "ONI 鬼コンボラック IPF公認",
+        "link":  "https://bukiya.net/products/oni373a",
+        "width_cm":  95,
+        "length_cm":  140
+    },
+    {
+        "id":  "new_フラットベンチ_evrb_c135",
+        "name":  "フラットベンチ EVRB-C135",
+        "link":  "https://evolgear.com/product/evrb-c135.html",
+        "width_cm":  135,
+        "length_cm":  76
+    },
+    {
+        "id":  "new_オリンピックバー_eva_5000",
+        "name":  "オリンピックバー EVA-5000",
+        "link":  "https://evolgear.com/product/eva-5000.html",
+        "width_cm":  5,
+        "length_cm":  220
+    },
+    {
+        "id":  "new_プレートツリー_evrb_c154",
+        "name":  "プレートツリー EVRB-C154",
+        "link":  "https://evolgear.com/product/evrb-c154.html",
+        "width_cm":  61,
+        "length_cm":  58
+    },
+    {
+        "id":  "new_rogue_deadlift_jack",
+        "name":  "Rogue Deadlift Jack",
+        "link":  "https://www.roguefitness.com/rogue-deadlift-jack",
+        "width_cm":  48,
+        "length_cm":  107
+    },
+    {
+        "id":  "new_wall_ball",
+        "name":  "Wall Ball",
+        "link":  "https://www.roguefitness.com/medicine-balls",
+        "width_cm":  36,
+        "length_cm":  36
+    },
+    {
+        "id":  "new_kettlebell_set",
+        "name":  "Kettlebell Set",
+        "link":  "https://www.roguefitness.com/rogue-kettlebells",
+        "width_cm":  100,
+        "length_cm":  60
+    },
+    {
+        "id":  "new_アタッチメントラック",
+        "name":  "アタッチメントラック",
+        "link":  "https://evolgear.com/",
+        "width_cm":  43,
+        "length_cm":  46
+    },
+    {
+        "id":  "new_tire_flip_strongman_tire",
+        "name":  "Tire Flip / Strongman Tire",
+        "link":  "https://warriors-gym.com/en/facility/",
+        "width_cm":  120,
+        "length_cm":  120
+    },
+    {
+        "id":  "new_dog_sled_1_2",
+        "name":  "Dog Sled 1.2",
+        "link":  "https://www.roguefitness.com/dog-sled",
+        "width_cm":  61,
+        "length_cm":  102
+    },
+    {
+        "id":  "new_farmer_s_walk_handles",
+        "name":  "Farmer\u0027s Walk Handles",
+        "link":  "https://www.roguefitness.com/strongman/logs-axles-handles",
+        "width_cm":  61,
+        "length_cm":  152
+    },
+    {
+        "id":  "new_lb_1_rogue_10_inch_log_bar",
+        "name":  "LB-1 Rogue 10 inch Log Bar",
+        "link":  "https://www.roguefitness.com/log-bar",
+        "width_cm":  25,
+        "length_cm":  196
+    },
+    {
+        "id":  "new_y_2_yoke",
+        "name":  "Y-2 Yoke",
+        "link":  "https://www.roguefitness.com/rogue-yoke",
+        "width_cm":  122,
+        "length_cm":  127
+    },
+    {
+        "id":  "new_strongman_sandbag_set",
+        "name":  "Strongman Sandbag Set",
+        "link":  "https://www.roguefitness.com/rogue-sandbags",
+        "width_cm":  41,
+        "length_cm":  41
+    }
+]
