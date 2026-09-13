@@ -138,12 +138,15 @@ function genreExisting(category) {
 
 function genreNew(name, zone) {
   const s = `${name} ${zone}`.toLowerCase();
+  // HYROXラインナップは一旦棚上げ（シートからも削除予定）。誤って残っていても出さない
   if (
     /hyrox|ski|rowerg|bikeerg|sled|wall.?ball|kettle|sandbag|tire|farmer|yoke|log bar|パワーマックス|dog sled/.test(
       s
-    )
+    ) ||
+    zone === "HYROX/有酸素" ||
+    /^HYROX/i.test(String(zone || ""))
   ) {
-    return "hyrox";
+    return null;
   }
   if (/curve|powermill|climb|stepmill|tread|cross trainer|integrity\+|有酸素/.test(s)) {
     return "cardio";
@@ -170,7 +173,6 @@ function genreNew(name, zone) {
     return "plate";
   }
   if (zone === "初心者" || zone === "胸") return "stack";
-  if (zone === "HYROX/有酸素") return "hyrox";
   return "plate";
 }
 
@@ -454,6 +456,7 @@ async function fetchNew(used) {
     const qty = Number.isFinite(rawQty) && rawQty > 0 ? rawQty : 9;
     const zone = zoneI != null ? String(r[zoneI] || "").trim() : "";
     const genre = genreNew(name, zone);
+    if (!genre) continue;
     const id = slugId(name, used);
     const module_width_cm = width_cm + CLEARANCE_CM * 2;
     const module_length_cm = length_cm + CLEARANCE_CM * 2;

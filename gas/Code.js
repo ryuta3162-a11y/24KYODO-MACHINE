@@ -19,6 +19,10 @@ function doGet(e) {
       var msg = updateNewMachinesVerified();
       return json_({ ok: true, op: op, message: msg, at: new Date().toISOString() });
     }
+    if (op === 'remove-hyrox') {
+      var removedMsg = removeHyroxFromNewMachines();
+      return json_({ ok: true, op: op, message: removedMsg, at: new Date().toISOString() });
+    }
     var machines = getExistingMachines_();
     return json_({
       ok: true,
@@ -134,6 +138,65 @@ function json_(obj) {
 /** clasp / 手動確認用 */
 function debugMachines() {
   Logger.log(JSON.stringify(getExistingMachines_().slice(0, 3), null, 2));
+}
+
+/**
+ * 新マシンから HYROX 系を削除（選び直しまでの一時クリア）
+ * スプレッドシート紐づきエディタで実行、または ?op=remove-hyrox
+ */
+function removeHyroxFromNewMachines() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ss.getSheetByName(NEW_SHEET_NAME);
+  if (!sh) throw new Error('sheet not found: ' + NEW_SHEET_NAME);
+  var values = sh.getDataRange().getDisplayValues();
+  if (values.length < 2) return 'no data';
+
+  var header = values[0].map(function (h) {
+    return String(h || '').trim();
+  });
+  var idx = {};
+  for (var i = 0; i < header.length; i++) {
+    if (header[i] && idx[header[i]] == null) idx[header[i]] = i;
+  }
+  var zoneI = idx['ゾーン候補'] != null ? idx['ゾーン候補'] : 1;
+  var nameI = idx['名称'] != null ? idx['名称'] : 9;
+  var noteI = idx['備考'] != null ? idx['備考'] : 14;
+
+  function isHyrox(zone, name, note) {
+    var z = String(zone || '');
+    var n = String(name || '');
+    var m = String(note || '');
+    if (/HYROX/i.test(z)) return true;
+    if (
+      /SkiErg|RowErg|BikeErg|POWER MAX|PowerMill|ClimbMill|Curve Treadmill|Wall Ball|Kettlebell|Tire Flip|Dog Sled|Farmer'?s? Walk|Log Bar|Y-2 Yoke|Sandbag/i.test(
+        n
+      )
+    ) {
+      return true;
+    }
+    if (/HYROX/i.test(m) && /Integrity\+|Cross Trainer|Treadmill/i.test(n)) return true;
+    return false;
+  }
+
+  var kept = [values[0]];
+  var removed = [];
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    var name = String(row[nameI] || '').trim();
+    if (!name) continue;
+    if (isHyrox(row[zoneI], name, row[noteI])) {
+      removed.push(name);
+      continue;
+    }
+    kept.push(row);
+  }
+
+  sh.clear();
+  if (kept.length && kept[0].length) {
+    sh.getRange(1, 1, kept.length, kept[0].length).setValues(kept);
+  }
+  sh.setFrozenRows(1);
+  return 'removed ' + removed.length + ': ' + removed.join(' / ') + ' (kept ' + (kept.length - 1) + ')';
 }
 
 /**
