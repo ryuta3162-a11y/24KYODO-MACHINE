@@ -281,8 +281,8 @@ async function fetchExisting(used) {
     if (photo === "freeweight_6" || name === "スミスマシン") {
       const smiths = [
         { id: "freeweight_6", label: "スミスマシン", brand: "Technogym", model: "Selection系想定", photoKey: "freeweight_6" },
-        { id: "freeweight_6b", label: "スミスマシン", brand: "Matrix", model: "スミスマシン", photoKey: "freeweight_6" },
-        { id: "freeweight_6c", label: "スミスマシン", brand: "CYBEX", model: "スミスマシン", photoKey: "freeweight_6" },
+        { id: "freeweight_6b", label: "スミスマシン", brand: "Matrix", model: "スミスマシン", photoKey: "freeweight_6b" },
+        { id: "freeweight_6c", label: "スミスマシン", brand: "CYBEX", model: "スミスマシン", photoKey: "freeweight_6c" },
       ];
       for (const part of smiths) {
         if (used.has(part.id)) continue;
