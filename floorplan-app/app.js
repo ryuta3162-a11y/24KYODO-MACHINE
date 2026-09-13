@@ -170,6 +170,48 @@ function shareUrl() {
   return u.toString();
 }
 
+function clearPlacementState() {
+  state.items = [];
+  state.zones = [];
+  state.history = [];
+  state.undoStack = [];
+  state.selectedUids = new Set();
+  state.selectedZoneUids = new Set();
+  state.clipboard = [];
+  state.updatedAt = null;
+  state.updatedBy = null;
+  clearZoneEdit();
+}
+
+function inPlanBounds(it) {
+  const x = Number(it.x);
+  const y = Number(it.y);
+  if (![x, y].every(Number.isFinite)) return false;
+  // 他フロア配置の混入防止（座標が大きく外れていれば捨てる）
+  return x > -40 && y > -40 && x < PLAN_W + 40 && y < PLAN_H + 40;
+}
+
+async function switchRoom(nextRoomId) {
+  const next = String(nextRoomId || "").trim();
+  if (!ROOMS[next] || next === state.roomId) return;
+  // 先に空にしてから切替（2Fマシンが3Fに残って見えるのを防ぐ）
+  clearPlacementState();
+  renderMachines();
+  renderZones();
+  renderHistory();
+  updateChrome();
+
+  state.roomId = next;
+  applyRoomConfig(next);
+  const url = shareUrl();
+  if (url !== location.href) history.replaceState(null, "", url);
+
+  fitView();
+  await loadCloud(true);
+  fitView();
+  updateChrome();
+}
+
 function authorName() {
   return (el.author?.value || "").trim().slice(0, 40) || "anonymous";
 }
@@ -1233,13 +1275,14 @@ async function fetchRoom() {
 }
 
 function applyRoomData(data, { keepSelection = false } = {}) {
-  state.items = Array.isArray(data.items)
-    ? data.items.map((it) => ({
-        ...it,
-        // 旧「両用」ID → アブダクション側へ移行
-        id: it.id === "resistance_10_11" ? "resistance_10" : it.id,
-      }))
-    : [];
+  const rawItems = Array.isArray(data.items) ? data.items : [];
+  state.items = rawItems
+    .map((it) => ({
+      ...it,
+      // 旧「両用」ID → アブダクション側へ移行
+      id: it.id === "resistance_10_11" ? "resistance_10" : it.id,
+    }))
+    .filter(inPlanBounds);
   state.zones = Array.isArray(data.zones) ? data.zones.map((z) => ({ ...z })) : [];
   state.history = Array.isArray(data.history) ? data.history : [];
   state.updatedAt = data.updatedAt || null;
@@ -1303,9 +1346,12 @@ async function saveCloud() {
 
     // 履歴メタだけ遅延同期。items/zones は保存レスポンスを信頼（読取遅延で欠落するのを防ぐ）
     const savedAt = state.updatedAt;
+    const roomAtSave = state.roomId;
     setTimeout(() => {
+      if (state.roomId !== roomAtSave) return;
       fetchRoom()
         .then((data) => {
+          if (state.roomId !== roomAtSave) return;
           if (Array.isArray(data.history) && data.history.length) {
             state.history = data.history.map((h) => {
               if (Array.isArray(h.items) || Array.isArray(h.zones)) return h;
@@ -1324,7 +1370,7 @@ async function saveCloud() {
           const localAt = savedAt ? Date.parse(savedAt) : 0;
           if (Number.isFinite(remoteAt) && Number.isFinite(localAt) && remoteAt >= localAt) {
             if (Array.isArray(data.items) && data.items.length >= snapshot.length) {
-              state.items = data.items.map((it) => ({ ...it }));
+              state.items = data.items.map((it) => ({ ...it })).filter(inPlanBounds);
             }
             if (Array.isArray(data.zones) && data.zones.length >= zoneSnap.length) {
               state.zones = data.zones.map((z) => ({ ...z }));
@@ -2076,12 +2122,20 @@ async function init() {
   if (el.floorSelect) {
     el.floorSelect.addEventListener("change", () => {
       const next = el.floorSelect.value;
-      if (!ROOMS[next] || next === state.roomId) return;
-      const u = new URL(location.href);
-      u.searchParams.set("room", next);
-      location.assign(u.toString());
+      switchRoom(next).catch((err) => {
+        console.error(err);
+        flash("フロア切替失敗");
+      });
     });
   }
+
+  // bfcache 復帰で別フロアの配置が残るのを防ぐ
+  window.addEventListener("pageshow", (e) => {
+    const urlRoom = roomFromUrl();
+    if (e.persisted || urlRoom !== state.roomId) {
+      switchRoom(urlRoom).catch(console.error);
+    }
+  });
 
   const loaded = await loadCatalog();
   renderPalette();
