@@ -133,20 +133,51 @@ export default async function handler(req, res) {
       const by = String(body.by || "anonymous").trim().slice(0, 40) || "anonymous";
       const note = String(body.note || "").trim().slice(0, 80);
       const auto = body.auto === true || note === "自動保存";
+      const force = body.force === true;
+      const baseUpdatedAt = body.baseUpdatedAt != null ? String(body.baseUpdatedAt) : "";
       const now = new Date().toISOString();
       const entryId = crypto.randomUUID();
 
       const current = (await readRoom(roomId)) || emptyRoom(roomId);
 
-      // 自動保存は「減る上書き」を拒否（別タブの古い状態で通路などが消えるのを防ぐ）
-      if (auto) {
+      // 版が違う保存は拒否（古いタブの部分上書きを防ぐ）。force のみ上書き可
+      if (
+        !force &&
+        baseUpdatedAt &&
+        current.updatedAt &&
+        baseUpdatedAt !== String(current.updatedAt)
+      ) {
+        return res.status(409).json({
+          ok: false,
+          error: "version_conflict",
+          message: "他の保存と競合しています",
+          data: {
+            roomId,
+            updatedAt: current.updatedAt,
+            updatedBy: current.updatedBy,
+            items: current.items || [],
+            zones: current.zones || [],
+            history: (current.history || []).slice(0, 40).map(({ id, at, by, note, count, zoneCount }) => ({
+              id,
+              at,
+              by,
+              note,
+              count,
+              zoneCount,
+            })),
+          },
+        });
+      }
+
+      // 自動保存かつ base 未送信のときだけ、件数減少の粗ガード
+      if (auto && !baseUpdatedAt) {
         const curItems = Array.isArray(current.items) ? current.items.length : 0;
         const curZones = Array.isArray(current.zones) ? current.zones.length : 0;
         if (items.length < curItems || zones.length < curZones) {
           return res.status(409).json({
             ok: false,
-            error: "autosave_refused_shrink",
-            message: "自動保存を拒否（サーバ側の台数/ゾーンの方が多い）",
+            error: "version_conflict",
+            message: "自動保存を拒否（サーバ側の方が新しい可能性）",
             data: {
               roomId,
               updatedAt: current.updatedAt,

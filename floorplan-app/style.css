@@ -90,6 +90,9 @@ html, body {
 .btn.primary { background: var(--red); border-color: var(--red-dark); }
 .btn.primary.is-saving,
 .btn.primary:disabled { opacity: 0.65; cursor: wait; }
+.btn.primary.is-dirty:not(.is-saving) {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--red);
+}
 .btn.danger { color: #fecaca; border-color: #7f1d1d; }
 
 .zonebar {

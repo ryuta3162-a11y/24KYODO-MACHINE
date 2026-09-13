@@ -90,6 +90,8 @@ const state = {
   autosaveTimer: null,
   autosaveInFlight: false,
   lastSavedFp: "",
+  saveQueue: Promise.resolve(),
+  tabId: crypto.randomUUID(),
 };
 
 const el = {
@@ -372,17 +374,55 @@ function pushUndo() {
   if (state.undoStack.length > MAX_UNDO) state.undoStack.shift();
 }
 
-function contentFingerprint() {
-  return JSON.stringify({ items: state.items, zones: state.zones });
+function contentFingerprint(items = state.items, zones = state.zones) {
+  return JSON.stringify({ items, zones });
+}
+
+function updateDirtyUi() {
+  if (!el.btnSave) return;
+  el.btnSave.classList.toggle("is-dirty", !!state.dirty);
+  el.btnSave.title = state.dirty ? "未保存の変更あり" : "保存済み";
+  if (state.dirty && !el.btnSave.classList.contains("is-saving")) {
+    el.btnSave.textContent = "保存*";
+  } else if (!el.btnSave.classList.contains("is-saving")) {
+    el.btnSave.textContent = "保存";
+  }
 }
 
 function markDirty() {
   if (contentFingerprint() === state.lastSavedFp) {
     state.dirty = false;
+    updateDirtyUi();
     return;
   }
   state.dirty = true;
+  updateDirtyUi();
   scheduleAutosave();
+}
+
+function touchTabLock() {
+  try {
+    localStorage.setItem(
+      `kyodo-floorplan-lock:${state.roomId}`,
+      JSON.stringify({ tabId: state.tabId, at: Date.now() })
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+function isPrimaryTab() {
+  try {
+    const raw = localStorage.getItem(`kyodo-floorplan-lock:${state.roomId}`);
+    if (!raw) return true;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.tabId) return true;
+    // 8秒以上無更新ならロック奪取可
+    if (Date.now() - Number(parsed.at || 0) > 8000) return true;
+    return parsed.tabId === state.tabId;
+  } catch {
+    return true;
+  }
 }
 
 function isBusyForAutosave() {
@@ -394,9 +434,7 @@ function isBusyForAutosave() {
     state.dragPrimaryUid ||
     state.panning ||
     state.marquee ||
-    state.autosaveInFlight ||
-    el.btnSave?.disabled ||
-    el.btnSave?.classList.contains("is-saving")
+    state.autosaveInFlight
   );
 }
 
@@ -411,25 +449,33 @@ function scheduleAutosave() {
 function runAutosave() {
   if (contentFingerprint() === state.lastSavedFp) {
     state.dirty = false;
+    updateDirtyUi();
     return;
   }
   if (isBusyForAutosave()) {
     scheduleAutosave();
     return;
   }
-  state.autosaveInFlight = true;
-  state.dirty = false;
-  saveCloud({ auto: true })
-    .catch((err) => {
-      console.error(err);
-      state.dirty = true;
-      showSaveToast("自動保存に失敗しました", { error: true });
-      scheduleAutosave();
-    })
-    .finally(() => {
-      state.autosaveInFlight = false;
-      if (state.dirty || contentFingerprint() !== state.lastSavedFp) scheduleAutosave();
-    });
+  if (!isPrimaryTab()) {
+    // 他タブが編集中ならこのタブは自動保存しない（上書き事故防止）
+    scheduleAutosave();
+    return;
+  }
+  touchTabLock();
+  enqueueSave({ auto: true }).catch((err) => {
+    console.error(err);
+    state.dirty = true;
+    updateDirtyUi();
+    showSaveToast("自動保存に失敗しました", { error: true });
+    scheduleAutosave();
+  });
+}
+
+function enqueueSave(opts = {}) {
+  state.saveQueue = state.saveQueue
+    .catch(() => {})
+    .then(() => saveCloud(opts));
+  return state.saveQueue;
 }
 
 function undoLast() {
@@ -1515,6 +1561,7 @@ function applyRoomData(data, { keepSelection = false } = {}) {
   renderMachines();
   state.lastSavedFp = contentFingerprint();
   state.dirty = false;
+  updateDirtyUi();
 }
 
 async function loadCloud(showFlash = true) {
@@ -1531,11 +1578,15 @@ async function loadCloud(showFlash = true) {
   if (showFlash) flash(data.updatedAt ? "最新を表示" : "まだ空です");
 }
 
-async function saveCloud({ auto = false } = {}) {
+async function saveCloud({ auto = false, force = false } = {}) {
   const snapshot = state.items.map((it) => ({ ...it }));
   const zoneSnap = state.zones.map((z) => ({ ...z }));
+  const sentFp = contentFingerprint(snapshot, zoneSnap);
   if (!auto) flash("保存中…");
+  state.autosaveInFlight = true;
   el.btnSave?.classList.add("is-saving");
+  if (el.btnSave) el.btnSave.textContent = "保存中…";
+  touchTabLock();
   try {
     const res = await fetch(`/api/room?id=${encodeURIComponent(state.roomId)}`, {
       method: "POST",
@@ -1545,46 +1596,59 @@ async function saveCloud({ auto = false } = {}) {
         items: snapshot,
         zones: zoneSnap,
         auto: !!auto,
-        note: auto ? "自動保存" : undefined,
+        force: !!force,
+        note: auto ? "自動保存" : force ? "強制保存" : undefined,
         baseUpdatedAt: state.updatedAt || undefined,
       }),
     });
     const json = await res.json().catch(() => ({}));
 
-    // 自動保存が「減る上書き」で拒否された → 多い方を残して修復保存
-    if (auto && res.status === 409 && json.error === "autosave_refused_shrink" && json.data) {
-      const remote = json.data;
-      const rZones = Array.isArray(remote.zones) ? remote.zones : [];
-      const rItems = Array.isArray(remote.items) ? remote.items : [];
-      if (rZones.length > state.zones.length) state.zones = rZones.map((z) => ({ ...z }));
-      if (rItems.length > state.items.length) state.items = rItems.map((it) => ({ ...it }));
-      state.updatedAt = remote.updatedAt || state.updatedAt;
-      state.updatedBy = remote.updatedBy || state.updatedBy;
-      if (Array.isArray(remote.history) && remote.history.length) {
-        state.history = remote.history;
+    if (res.status === 409 && json.error === "version_conflict") {
+      if (auto) {
+        // 自動保存はサーバ優先（古いタブの上書きを捨てる）
+        if (json.data) applyRoomData(json.data);
+        await refreshPeerCounts();
+        renderPalette();
+        showSaveToast("他画面の保存を優先しました", { error: true });
+        flash("競合回避");
+        return;
       }
-      renderHistory();
-      renderZones();
-      renderMachines();
-      showSaveToast("自動保存を保護（消えた線を戻して再保存）");
-      flash("保護修復");
-      el.btnSave?.classList.remove("is-saving");
-      await saveCloud({ auto: false });
+      const ok = confirm(
+        "サーバに新しい保存があります。\nこの画面の内容で上書きしますか？\n（キャンセルでサーバ版を読み込みます）"
+      );
+      if (ok) {
+        await saveCloud({ auto: false, force: true });
+        return;
+      }
+      if (json.data) applyRoomData(json.data);
+      await refreshPeerCounts();
+      renderPalette();
+      showSaveToast("サーバ版を読み込みました");
       return;
     }
 
     if (!res.ok || !json.ok) throw new Error(json.error || json.message || "save failed");
 
-    // 保存結果をそのまま反映（直後の再GETで古いBlobが返って消えるのを防ぐ）
-    const savedItems = Array.isArray(json.data?.items) ? json.data.items : snapshot;
-    const savedZones = Array.isArray(json.data?.zones) ? json.data.zones : zoneSnap;
-    state.items = savedItems.map((it) => ({ ...it }));
-    state.zones = savedZones.map((z) => ({ ...z }));
-    state.updatedAt = json.data?.updatedAt || new Date().toISOString();
-    state.updatedBy = json.data?.updatedBy || authorName();
-    state.dirty = false;
-    state.lastSavedFp = contentFingerprint();
-    if (!auto) clearZoneEdit();
+    const savedAt = json.data?.updatedAt || new Date().toISOString();
+    const savedBy = json.data?.updatedBy || authorName();
+    const localChangedDuringSave = contentFingerprint() !== sentFp;
+
+    // 保存中に追加編集されていたら、レスポンスで巻き戻さない
+    if (!localChangedDuringSave) {
+      const savedItems = Array.isArray(json.data?.items) ? json.data.items : snapshot;
+      const savedZones = Array.isArray(json.data?.zones) ? json.data.zones : zoneSnap;
+      state.items = savedItems.map((it) => ({ ...it }));
+      state.zones = savedZones.map((z) => ({ ...z }));
+      state.dirty = false;
+      state.lastSavedFp = contentFingerprint();
+      if (!auto) clearZoneEdit();
+    } else {
+      // サーバの版番号だけ進め、ローカル編集は残して再自動保存
+      state.dirty = true;
+      state.lastSavedFp = sentFp;
+    }
+    state.updatedAt = savedAt;
+    state.updatedBy = savedBy;
 
     const savedEntry = json.data?.savedEntry;
     if (savedEntry && savedEntry.id) {
@@ -1599,7 +1663,7 @@ async function saveCloud({ auto = false } = {}) {
       ].slice(0, 40);
     }
 
-    // 履歴メタだけ遅延同期。items/zones は保存レスポンスを信頼し、遅延GETで上書きしない
+    // 履歴メタだけ遅延同期
     const roomAtSave = state.roomId;
     setTimeout(() => {
       if (state.roomId !== roomAtSave) return;
@@ -1629,10 +1693,19 @@ async function saveCloud({ auto = false } = {}) {
     renderMachines();
     await refreshPeerCounts();
     renderPalette();
-    showSaveToast(auto ? "自動保存しました" : "保存されました");
-    flash(auto ? "自動保存" : "保存済み");
+    updateDirtyUi();
+    if (localChangedDuringSave) {
+      showSaveToast(auto ? "自動保存（続きを再保存します）" : "保存（続きを再保存します）");
+      flash("追加分を再保存");
+      scheduleAutosave();
+    } else {
+      showSaveToast(auto ? "自動保存しました" : "保存されました");
+      flash(auto ? "自動保存" : "保存済み");
+    }
   } finally {
+    state.autosaveInFlight = false;
     el.btnSave?.classList.remove("is-saving");
+    updateDirtyUi();
   }
 }
 
@@ -2075,7 +2148,8 @@ function bindDrop() {
 function saveLayout() {
   if (el.btnSave?.disabled) return;
   el.btnSave.disabled = true;
-  saveCloud()
+  touchTabLock();
+  enqueueSave({ auto: false })
     .catch((err) => {
       console.error(err);
       flash("保存失敗");
@@ -2083,6 +2157,7 @@ function saveLayout() {
     })
     .finally(() => {
       el.btnSave.disabled = false;
+      updateDirtyUi();
     });
 }
 
@@ -2499,6 +2574,18 @@ async function init() {
     if (e.code === "Space") state.spaceDown = false;
   });
   window.addEventListener("resize", () => fitView());
+  window.addEventListener("beforeunload", (e) => {
+    if (!state.dirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+  window.addEventListener("focus", () => touchTabLock());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") touchTabLock();
+  });
+  setInterval(() => {
+    if (document.visibilityState === "visible") touchTabLock();
+  }, 3000);
 
   el.btnFit.addEventListener("click", fitView);
   el.btnRotate.addEventListener("click", rotateSelected);
