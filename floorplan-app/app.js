@@ -8,7 +8,7 @@ const AUTHOR_KEY = "kyodo-floorplan-author";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
 /** 画像差し替え時にブラウザ/CDNキャッシュを切る */
-const ART_VER = "20260913h";
+const ART_VER = "20260913i";
 const CSV_URL = "../floorplan/machines.csv";
 const CATALOG_URL = "../floorplan/machines_catalog.json";
 const MACHINES_API = "/api/machines";
@@ -805,7 +805,13 @@ async function fetchRoom() {
 }
 
 function applyRoomData(data, { keepSelection = false } = {}) {
-  state.items = Array.isArray(data.items) ? data.items.map((it) => ({ ...it })) : [];
+  state.items = Array.isArray(data.items)
+    ? data.items.map((it) => ({
+        ...it,
+        // 旧「両用」ID → アブダクション側へ移行
+        id: it.id === "resistance_10_11" ? "resistance_10" : it.id,
+      }))
+    : [];
   state.history = Array.isArray(data.history) ? data.history : [];
   state.updatedAt = data.updatedAt || null;
   state.updatedBy = data.updatedBy || null;

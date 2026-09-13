@@ -96,13 +96,6 @@ function resolveId(photo, used) {
 }
 
 function filesFor(id, photo) {
-  if (id === "resistance_10_11") {
-    return {
-      lp_image: "resistance_10.jpg",
-      place_file: "resistance_10_place.png",
-      preview_file: "resistance_10_preview.png",
-    };
-  }
   if (id === "cardio_3a" || id === "cardio_3b") {
     return {
       lp_image: "cardio_3.jpg",
@@ -194,8 +187,7 @@ async function fetchExisting(used) {
     if (EXISTING_NAME_OVERRIDE[name] === null || name === "ダンベルラック") continue;
     const photo = (r[idx["写真"]] || "").trim();
     if (photo === "freeweight_10") continue;
-    const id = resolveId(photo, used);
-    if (!id) continue;
+
     const width_cm = mmToCm(r[idx["幅(mm)"]]);
     const length_cm = mmToCm(r[idx["奥行(mm)"]]);
     if (width_cm == null || length_cm == null) continue;
@@ -203,14 +195,56 @@ async function fetchExisting(used) {
     const category = CAT_MAP[(r[idx["カテゴリ"]] || "").trim()] || "resistance";
     const brand = (r[idx["ブランド"]] || "").trim();
     const model = (r[idx["シリーズ/型番"]] || "").trim();
-    const files = filesFor(id, photo);
-    // 例: CYBEX　ショルダープレス
-    const displayName = displayExisting(name, brand);
-    const module_width_cm = width_cm + CLEARANCE_CM * 2;
-    const module_length_cm = length_cm + CLEARANCE_CM * 2;
     const genre = genreExisting(category);
     const linkCol = idx["商品リンク"] ?? idx["リンク"] ?? idx["URL"];
     const link = linkCol != null ? String(r[linkCol] || "").trim() : "";
+    const module_width_cm = width_cm + CLEARANCE_CM * 2;
+    const module_length_cm = length_cm + CLEARANCE_CM * 2;
+
+    // ヒップアブ/アド両用 → アブダクション／アダクションの2台に分割
+    const isHipCombo =
+      photo === "resistance_10_11" ||
+      /ヒップアブ\s*[\/／]\s*アド/.test(name) ||
+      /ヒップアブダクション\s*[\/／]\s*アダクション/.test(name);
+    if (isHipCombo) {
+      const parts = [
+        { id: "resistance_10", label: "ヒップアブダクション", photoKey: "resistance_10" },
+        { id: "resistance_11", label: "ヒップアダクション", photoKey: "resistance_11" },
+      ];
+      for (const part of parts) {
+        if (used.has(part.id)) continue;
+        used.add(part.id);
+        machines.push({
+          id: part.id,
+          name: displayExisting(part.label, brand),
+          brand,
+          model,
+          category,
+          genre,
+          source: "existing",
+          qty: 1,
+          width_cm,
+          length_cm,
+          clearance_cm: CLEARANCE_CM,
+          module_width_cm,
+          module_length_cm,
+          place_px_w: module_width_cm,
+          place_px_h: module_length_cm,
+          has_art: true,
+          ...filesFor(part.id, part.photoKey),
+          photo_key: part.photoKey,
+          link,
+          note: "両用機をアブダクション／アダクションに分割",
+        });
+      }
+      continue;
+    }
+
+    const id = resolveId(photo, used);
+    if (!id) continue;
+    const files = filesFor(id, photo);
+    // 例: CYBEX　ショルダープレス
+    const displayName = displayExisting(name, brand);
     machines.push({
       id,
       name: displayName,
