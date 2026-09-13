@@ -92,6 +92,9 @@ const state = {
   lastSavedFp: "",
   saveQueue: Promise.resolve(),
   tabId: crypto.randomUUID(),
+  saveStatus: "saved", // saved | dirty | saving | conflict | error
+  conflictPending: false,
+  conflictServerData: null,
 };
 
 const el = {
@@ -106,11 +109,16 @@ const el = {
   sourceFilters: document.getElementById("source-filters"),
   author: document.getElementById("author"),
   history: document.getElementById("history"),
+  statusSave: document.getElementById("status-save"),
   statusRoom: document.getElementById("status-room"),
   statusScale: document.getElementById("status-scale"),
   statusCount: document.getElementById("status-count"),
   statusSel: document.getElementById("status-sel"),
   statusLink: document.getElementById("status-link"),
+  conflictModal: document.getElementById("conflict-modal"),
+  conflictKeepMine: document.getElementById("conflict-keep-mine"),
+  conflictTakeServer: document.getElementById("conflict-take-server"),
+  conflictLater: document.getElementById("conflict-later"),
   floorSelect: document.getElementById("floor-select"),
   brandTitle: document.getElementById("brand-title"),
   floor: document.getElementById("floor"),
@@ -379,25 +387,69 @@ function contentFingerprint(items = state.items, zones = state.zones) {
 }
 
 function updateDirtyUi() {
-  if (!el.btnSave) return;
-  el.btnSave.classList.toggle("is-dirty", !!state.dirty);
-  el.btnSave.title = state.dirty ? "未保存の変更あり" : "保存済み";
-  if (state.dirty && !el.btnSave.classList.contains("is-saving")) {
-    el.btnSave.textContent = "保存*";
-  } else if (!el.btnSave.classList.contains("is-saving")) {
-    el.btnSave.textContent = "保存";
+  if (el.btnSave) {
+    el.btnSave.classList.toggle("is-dirty", !!state.dirty);
+    el.btnSave.title = state.dirty ? "未保存の変更あり" : "保存済み";
+    if (state.autosaveInFlight || state.saveStatus === "saving") {
+      el.btnSave.textContent = "保存中…";
+    } else if (state.dirty && !el.btnSave.classList.contains("is-saving")) {
+      el.btnSave.textContent = "保存*";
+    } else if (!el.btnSave.classList.contains("is-saving")) {
+      el.btnSave.textContent = "保存";
+    }
   }
+  updateSaveStatusUi();
 }
 
-function markDirty() {
+function updateSaveStatusUi() {
+  if (!el.statusSave) return;
+  const map = {
+    saved: { text: "保存済み", cls: "is-saved" },
+    dirty: { text: "未保存", cls: "is-dirty" },
+    saving: { text: "保存中…", cls: "is-saving" },
+    conflict: { text: "競合あり", cls: "is-conflict" },
+    error: { text: "保存失敗", cls: "is-error" },
+  };
+  let key = state.saveStatus;
+  if (state.conflictPending) key = "conflict";
+  else if (state.autosaveInFlight) key = "saving";
+  else if (state.dirty && key !== "error") key = "dirty";
+  else if (!state.dirty && key !== "error" && key !== "conflict") key = "saved";
+  const info = map[key] || map.saved;
+  el.statusSave.textContent = info.text;
+  el.statusSave.className = `status-save ${info.cls}`;
+  el.statusSave.title =
+    key === "conflict"
+      ? "他画面と保存が競合しています"
+      : key === "dirty"
+        ? "未保存の変更あり（ドラッグ終了後すぐ保存）"
+        : key === "saving"
+          ? "クラウドへ保存中"
+          : key === "error"
+            ? "保存に失敗しました"
+            : "クラウドに保存済み";
+}
+
+function markDirty({ immediate = false } = {}) {
   if (contentFingerprint() === state.lastSavedFp) {
     state.dirty = false;
+    if (!state.conflictPending) state.saveStatus = "saved";
     updateDirtyUi();
     return;
   }
   state.dirty = true;
+  if (!state.conflictPending) state.saveStatus = "dirty";
   updateDirtyUi();
-  scheduleAutosave();
+  if (immediate) saveSoon();
+  else scheduleAutosave();
+}
+
+function saveSoon() {
+  if (state.autosaveTimer) clearTimeout(state.autosaveTimer);
+  state.autosaveTimer = setTimeout(() => {
+    state.autosaveTimer = null;
+    runAutosave();
+  }, 120);
 }
 
 function touchTabLock() {
@@ -439,6 +491,7 @@ function isBusyForAutosave() {
 }
 
 function scheduleAutosave() {
+  if (state.conflictPending) return;
   if (state.autosaveTimer) clearTimeout(state.autosaveTimer);
   state.autosaveTimer = setTimeout(() => {
     state.autosaveTimer = null;
@@ -447,8 +500,13 @@ function scheduleAutosave() {
 }
 
 function runAutosave() {
+  if (state.conflictPending) {
+    updateSaveStatusUi();
+    return;
+  }
   if (contentFingerprint() === state.lastSavedFp) {
     state.dirty = false;
+    state.saveStatus = "saved";
     updateDirtyUi();
     return;
   }
@@ -465,6 +523,7 @@ function runAutosave() {
   enqueueSave({ auto: true }).catch((err) => {
     console.error(err);
     state.dirty = true;
+    state.saveStatus = "error";
     updateDirtyUi();
     showSaveToast("自動保存に失敗しました", { error: true });
     scheduleAutosave();
@@ -845,14 +904,28 @@ function renderMachines() {
       "machine" +
       (selected ? " selected" : "") +
       (item.hidden ? " hidden-item" : "") +
-      (item.trimmed ? " trimmed" : "");
+      (item.trimmed ? " trimmed" : "") +
+      (item.locked ? " locked" : "");
     node.dataset.uid = item.uid;
+    if (item.locked) node.dataset.locked = "1";
     node.style.left = `${item.x}px`;
     node.style.top = `${item.y}px`;
     node.style.width = `${item.trimmed ? body.bw : body.mw}px`;
     node.style.height = `${item.trimmed ? body.bh : body.mh}px`;
     node.style.transform = `rotate(${item.rot || 0}deg)`;
     node.style.transformOrigin = "center center";
+    if (item.locked) {
+      const lockBadge = document.createElement("span");
+      lockBadge.className = "machine-lock-badge";
+      lockBadge.textContent = "鍵";
+      lockBadge.title = "クリックでロック解除";
+      lockBadge.addEventListener("pointerdown", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        setItemsLockedSafe([item.uid], false);
+      });
+      node.appendChild(lockBadge);
+    }
     if (m) {
       const drawW = item.trimmed ? body.bw : body.mw;
       const drawH = item.trimmed ? body.bh : body.mh;
@@ -916,9 +989,11 @@ function renderMachines() {
           node.appendChild(label);
         }
       }
-      node.title = item.trimmed
-        ? `${m.name} 本体 ${m.width_cm}×${m.length_cm}cm`
-        : `${m.name} 本体 ${m.width_cm}×${m.length_cm}cm + 周囲80cm（線枠）`;
+      node.title = item.locked
+        ? `${m.name}（ロック中）`
+        : item.trimmed
+          ? `${m.name} 本体 ${m.width_cm}×${m.length_cm}cm`
+          : `${m.name} 本体 ${m.width_cm}×${m.length_cm}cm + 周囲80cm（線枠）`;
     } else {
       node.textContent = item.id;
       node.title = item.id;
@@ -1506,8 +1581,9 @@ function updateChrome() {
     }
   }
   const has = sels.length > 0;
+  const hasUnlocked = sels.some((it) => !it.locked);
   const hasZone = zsels.length > 0;
-  el.btnRotate.disabled = !has;
+  el.btnRotate.disabled = !hasUnlocked;
   el.btnDup.disabled = !has;
   el.btnDel.disabled = !has && !hasZone;
   if (el.btnZoneVertical) el.btnZoneVertical.disabled = !hasZone;
@@ -1561,6 +1637,10 @@ function applyRoomData(data, { keepSelection = false } = {}) {
   renderMachines();
   state.lastSavedFp = contentFingerprint();
   state.dirty = false;
+  state.conflictPending = false;
+  state.conflictServerData = null;
+  state.saveStatus = "saved";
+  hideConflictModal();
   updateDirtyUi();
 }
 
@@ -1579,13 +1659,19 @@ async function loadCloud(showFlash = true) {
 }
 
 async function saveCloud({ auto = false, force = false } = {}) {
+  if (state.conflictPending && !force && auto) {
+    updateSaveStatusUi();
+    return;
+  }
   const snapshot = state.items.map((it) => ({ ...it }));
   const zoneSnap = state.zones.map((z) => ({ ...z }));
   const sentFp = contentFingerprint(snapshot, zoneSnap);
   if (!auto) flash("保存中…");
   state.autosaveInFlight = true;
+  state.saveStatus = "saving";
   el.btnSave?.classList.add("is-saving");
   if (el.btnSave) el.btnSave.textContent = "保存中…";
+  updateSaveStatusUi();
   touchTabLock();
   try {
     const res = await fetch(`/api/room?id=${encodeURIComponent(state.roomId)}`, {
@@ -1604,30 +1690,18 @@ async function saveCloud({ auto = false, force = false } = {}) {
     const json = await res.json().catch(() => ({}));
 
     if (res.status === 409 && json.error === "version_conflict") {
-      if (auto) {
-        // 自動保存はサーバ優先（古いタブの上書きを捨てる）
-        if (json.data) applyRoomData(json.data);
-        await refreshPeerCounts();
-        renderPalette();
-        showSaveToast("他画面の保存を優先しました", { error: true });
-        flash("競合回避");
-        return;
-      }
-      const ok = confirm(
-        "サーバに新しい保存があります。\nこの画面の内容で上書きしますか？\n（キャンセルでサーバ版を読み込みます）"
-      );
-      if (ok) {
-        await saveCloud({ auto: false, force: true });
-        return;
-      }
-      if (json.data) applyRoomData(json.data);
-      await refreshPeerCounts();
-      renderPalette();
-      showSaveToast("サーバ版を読み込みました");
+      openConflictModal(json.data || null);
+      showSaveToast("保存が競合しました。どちらを残すか選んでください", { error: true });
+      flash("競合");
       return;
     }
 
     if (!res.ok || !json.ok) throw new Error(json.error || json.message || "save failed");
+
+    // 強制保存などで競合を解消
+    state.conflictPending = false;
+    state.conflictServerData = null;
+    hideConflictModal();
 
     const savedAt = json.data?.updatedAt || new Date().toISOString();
     const savedBy = json.data?.updatedBy || authorName();
@@ -1641,11 +1715,13 @@ async function saveCloud({ auto = false, force = false } = {}) {
       state.zones = savedZones.map((z) => ({ ...z }));
       state.dirty = false;
       state.lastSavedFp = contentFingerprint();
+      state.saveStatus = "saved";
       if (!auto) clearZoneEdit();
     } else {
       // サーバの版番号だけ進め、ローカル編集は残して再自動保存
       state.dirty = true;
       state.lastSavedFp = sentFp;
+      state.saveStatus = "dirty";
     }
     state.updatedAt = savedAt;
     state.updatedBy = savedBy;
@@ -1702,11 +1778,71 @@ async function saveCloud({ auto = false, force = false } = {}) {
       showSaveToast(auto ? "自動保存しました" : "保存されました");
       flash(auto ? "自動保存" : "保存済み");
     }
+  } catch (err) {
+    state.saveStatus = "error";
+    throw err;
   } finally {
     state.autosaveInFlight = false;
     el.btnSave?.classList.remove("is-saving");
     updateDirtyUi();
   }
+}
+
+function openConflictModal(serverData) {
+  state.conflictPending = true;
+  state.conflictServerData = serverData || null;
+  state.saveStatus = "conflict";
+  if (el.conflictModal) el.conflictModal.hidden = false;
+  updateSaveStatusUi();
+}
+
+function hideConflictModal() {
+  if (el.conflictModal) el.conflictModal.hidden = true;
+}
+
+async function resolveConflictKeepMine() {
+  hideConflictModal();
+  state.conflictPending = false;
+  state.conflictServerData = null;
+  try {
+    await enqueueSave({ auto: false, force: true });
+  } catch (err) {
+    console.error(err);
+    state.saveStatus = "error";
+    updateDirtyUi();
+    showSaveToast("上書き保存に失敗しました", { error: true });
+  }
+}
+
+async function resolveConflictTakeServer() {
+  const data = state.conflictServerData;
+  hideConflictModal();
+  state.conflictPending = false;
+  state.conflictServerData = null;
+  if (data) applyRoomData(data);
+  else {
+    try {
+      await loadCloud(false);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  await refreshPeerCounts();
+  renderPalette();
+  state.saveStatus = "saved";
+  updateDirtyUi();
+  showSaveToast("サーバ版を読み込みました");
+  flash("サーバ版");
+}
+
+function resolveConflictLater() {
+  hideConflictModal();
+  // conflictPending は残し、勝手に上書きしない
+  state.saveStatus = "conflict";
+  state.dirty = true;
+  updateDirtyUi();
+  showSaveToast("競合を保留しました。保存ボタンから選べます", { error: true });
+  flash("競合保留");
 }
 
 function showSaveToast(message, { error = false } = {}) {
@@ -1788,6 +1924,7 @@ function placeMachine(id, x, y, rot = 0) {
     rot,
     hidden: false,
     trimmed: false,
+    locked: false,
     place_px_w: m.place_px_w,
     place_px_h: m.place_px_h,
     clearance_cm: m.clearance_cm || DEFAULT_CLEARANCE_CM,
@@ -1828,9 +1965,11 @@ function selectByMarquee() {
 
 function onMachinePointerDown(e) {
   if (state.spaceDown || e.button === 1) return;
+  if (e.button === 2) return; // 右クリックは contextmenu で処理
   e.preventDefault();
   e.stopPropagation();
   const uidVal = e.currentTarget.dataset.uid;
+  const targetItem = state.items.find((i) => i.uid === uidVal);
   const additive = e.ctrlKey || e.metaKey || e.shiftKey;
   let selectionChanged = false;
   if (additive) {
@@ -1847,6 +1986,17 @@ function onMachinePointerDown(e) {
   // 選択が変わったときだけ再描画（毎回作り直すと dblclick が死ぬ）
   if (selectionChanged) renderMachines();
   else updateChrome();
+
+  // ロック中は選択のみ（位置を動かさない）
+  if (targetItem?.locked) {
+    flash("ロック中");
+    return;
+  }
+  // 選択にロック機が混ざっている場合はドラッグ開始しない
+  if (selectedItems().some((it) => it.locked)) {
+    flash("ロック機を含むため移動不可");
+    return;
+  }
 
   pushUndo();
   state.dragMoved = false;
@@ -2109,7 +2259,7 @@ function onPointerUp() {
   state.panStart = null;
   el.viewport.classList.remove("panning");
   clearGuides();
-  if (wasResizing || wasMoving || labelMoved || dragMoved) markDirty();
+  if (wasResizing || wasMoving || labelMoved || dragMoved) markDirty({ immediate: true });
 }
 
 function onWheel(e) {
@@ -2145,14 +2295,84 @@ function bindDrop() {
   });
 }
 
+function setItemsLockedSafe(uids, locked) {
+  const idSet = new Set(uids);
+  const targets = state.items.filter((it) => idSet.has(it.uid) && !!it.locked !== !!locked);
+  if (!targets.length) return;
+  pushUndo();
+  for (const item of targets) item.locked = !!locked;
+  renderMachines();
+  markDirty({ immediate: true });
+  flash(locked ? "ロック" : "ロック解除");
+}
+
+function hideCtxMenu() {
+  document.getElementById("ctx-menu")?.remove();
+}
+
+function showMachineCtxMenu(clientX, clientY, uidVal) {
+  hideCtxMenu();
+  const item = state.items.find((i) => i.uid === uidVal);
+  if (!item) return;
+  if (!state.selectedUids.has(uidVal)) {
+    state.selectedUids = new Set([uidVal]);
+    state.selectedZoneUids = new Set();
+    renderMachines();
+  }
+  const menu = document.createElement("div");
+  menu.id = "ctx-menu";
+  menu.className = "ctx-menu";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  if (item.locked) {
+    btn.textContent = "ロック解除";
+    btn.addEventListener("click", () => {
+      hideCtxMenu();
+      setItemsLockedSafe([uidVal], false);
+    });
+  } else {
+    btn.textContent = "位置をロック";
+    btn.addEventListener("click", () => {
+      hideCtxMenu();
+      const uids = selectedItems().length ? selectedItems().map((i) => i.uid) : [uidVal];
+      setItemsLockedSafe(uids, true);
+    });
+  }
+  menu.appendChild(btn);
+  document.body.appendChild(menu);
+  const pad = 8;
+  const rect = menu.getBoundingClientRect();
+  let left = clientX;
+  let top = clientY;
+  if (left + rect.width > window.innerWidth - pad) left = window.innerWidth - rect.width - pad;
+  if (top + rect.height > window.innerHeight - pad) top = window.innerHeight - rect.height - pad;
+  menu.style.left = `${Math.max(pad, left)}px`;
+  menu.style.top = `${Math.max(pad, top)}px`;
+}
+
+function onViewportContextMenu(e) {
+  e.preventDefault();
+  const machine = e.target.closest?.(".machine");
+  if (machine?.dataset?.uid) {
+    showMachineCtxMenu(e.clientX, e.clientY, machine.dataset.uid);
+    return;
+  }
+  hideCtxMenu();
+}
+
 function saveLayout() {
   if (el.btnSave?.disabled) return;
+  if (state.conflictPending) {
+    openConflictModal(state.conflictServerData);
+    return;
+  }
   el.btnSave.disabled = true;
   touchTabLock();
   enqueueSave({ auto: false })
     .catch((err) => {
       console.error(err);
       flash("保存失敗");
+      state.saveStatus = "error";
       showSaveToast("保存に失敗しました", { error: true });
     })
     .finally(() => {
@@ -2289,8 +2509,11 @@ function flash(msg) {
 }
 
 function rotateSelected() {
-  const sels = selectedItems();
-  if (!sels.length) return;
+  const sels = selectedItems().filter((it) => !it.locked);
+  if (!sels.length) {
+    if (selectedItems().some((it) => it.locked)) flash("ロック中");
+    return;
+  }
   pushUndo();
   for (const item of sels) {
     const m = findMachine(item.id);
@@ -2299,11 +2522,23 @@ function rotateSelected() {
     clampItem(item, m);
   }
   renderMachines();
-  markDirty();
+  markDirty({ immediate: true });
 }
 
 function dupSelected() {
-  pasteClipboard(selectedItems().map((it) => ({ id: it.id, x: it.x, y: it.y, rot: it.rot, hidden: !!it.hidden, trimmed: !!it.trimmed })), 40, 40);
+  pasteClipboard(
+    selectedItems().map((it) => ({
+      id: it.id,
+      x: it.x,
+      y: it.y,
+      rot: it.rot,
+      hidden: !!it.hidden,
+      trimmed: !!it.trimmed,
+      locked: false,
+    })),
+    40,
+    40
+  );
 }
 
 function delSelectedZones() {
@@ -2385,6 +2620,7 @@ function pasteClipboard(source = state.clipboard, dx = 40, dy = 40) {
       rot: it.rot || 0,
       hidden: !!it.hidden,
       trimmed: !!it.trimmed,
+      locked: false,
       place_px_w: m.place_px_w,
       place_px_h: m.place_px_h,
       clearance_cm: m.clearance_cm || DEFAULT_CLEARANCE_CM,
@@ -2528,7 +2764,20 @@ async function init() {
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerUp);
   el.viewport.addEventListener("wheel", onWheel, { passive: false });
-  el.viewport.addEventListener("contextmenu", (e) => e.preventDefault());
+  el.viewport.addEventListener("contextmenu", onViewportContextMenu);
+  window.addEventListener("pointerdown", (e) => {
+    if (!e.target.closest?.("#ctx-menu")) hideCtxMenu();
+  });
+
+  el.conflictKeepMine?.addEventListener("click", () => {
+    resolveConflictKeepMine().catch(console.error);
+  });
+  el.conflictTakeServer?.addEventListener("click", () => {
+    resolveConflictTakeServer().catch(console.error);
+  });
+  el.conflictLater?.addEventListener("click", () => resolveConflictLater());
+
+  updateSaveStatusUi();
 
   window.addEventListener("keydown", (e) => {
     const typing = e.target.matches("input, textarea, select");

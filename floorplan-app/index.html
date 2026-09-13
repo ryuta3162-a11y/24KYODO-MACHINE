@@ -93,12 +93,25 @@
   </div>
 
   <footer class="statusbar">
+    <span id="status-save" class="status-save is-saved" title="保存状態">保存済み</span>
     <span id="status-room">room</span>
     <span id="status-scale">—</span>
     <span id="status-count">0</span>
     <span id="status-sel"></span>
     <a id="status-link" class="status-link" hidden target="_blank" rel="noopener noreferrer"></a>
   </footer>
+
+  <div id="conflict-modal" class="conflict-modal" hidden>
+    <div class="conflict-card" role="dialog" aria-modal="true" aria-labelledby="conflict-title">
+      <h2 id="conflict-title">保存の競合</h2>
+      <p>他の画面で先に保存されています。どちらを残しますか？</p>
+      <div class="conflict-actions">
+        <button type="button" id="conflict-keep-mine" class="btn primary">この画面で上書き</button>
+        <button type="button" id="conflict-take-server" class="btn">サーバ版を読む</button>
+        <button type="button" id="conflict-later" class="btn">あとで</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="./app.js"></script>
 </body>
