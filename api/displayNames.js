@@ -102,6 +102,8 @@ export const DUMBBELL_AREA_MACHINES = [
     length_cm: 70,
     qty: 1,
     note: "IVANKO",
+    art_id: "dumbbell_area_12_30",
+    lp_image: "freeweight_10.jpg",
   },
   {
     id: "dumbbell_area_32_40",
@@ -112,6 +114,8 @@ export const DUMBBELL_AREA_MACHINES = [
     length_cm: 70,
     qty: 1,
     note: "ZIVA",
+    art_id: "dumbbell_area_32_40",
+    lp_image: "dumbbell_area_32_40.jpg",
   },
   {
     id: "dumbbell_area_1_10_a",
@@ -122,6 +126,8 @@ export const DUMBBELL_AREA_MACHINES = [
     length_cm: 100,
     qty: 1,
     note: "2セットのうち1",
+    art_id: "dumbbell_area_1_10",
+    lp_image: "dumbbell_area_1_10.jpg",
   },
   {
     id: "dumbbell_area_1_10_b",
@@ -132,6 +138,8 @@ export const DUMBBELL_AREA_MACHINES = [
     length_cm: 100,
     qty: 1,
     note: "2セットのうち2",
+    art_id: "dumbbell_area_1_10",
+    lp_image: "dumbbell_area_1_10.jpg",
   },
 ];
 

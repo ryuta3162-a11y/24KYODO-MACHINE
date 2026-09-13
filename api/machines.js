@@ -256,11 +256,10 @@ function buildDumbbellAreas(used) {
       place_px_w: module_width_cm,
       place_px_h: module_length_cm,
       has_art: true,
-      // 暫定: 既存ダンベルラック写真を流用（本体枠にフィット）
-      lp_image: "freeweight_10.jpg",
-      place_file: "freeweight_10_place.png",
-      preview_file: "freeweight_10_preview.png",
-      photo_key: "freeweight_10",
+      lp_image: row.lp_image || `${row.art_id || row.id}.jpg`,
+      place_file: `${row.art_id || row.id}_place.png`,
+      preview_file: `${row.art_id || row.id}_preview.png`,
+      photo_key: row.art_id || row.id,
       note: row.note || "",
     };
   });

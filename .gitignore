@@ -2,6 +2,7 @@
 .env*
 node_modules/
 floorplan/machines/_raw_new/
+floorplan/machines/_raw_dumbbell/
 floorplan/machines/_probe/
 floorplan/_dim_verify_raw.json
 floorplan/_eval_new.js
