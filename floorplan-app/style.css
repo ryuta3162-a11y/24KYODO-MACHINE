@@ -144,6 +144,23 @@ html, body {
   border-color: #fff;
   box-shadow: 0 0 0 1px #000;
 }
+.zone-freetext-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.zone-freetext-wrap input {
+  width: 180px;
+  border: 1px solid var(--line);
+  background: #0f1215;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
 
 .zones-layer {
   position: absolute;
@@ -182,6 +199,26 @@ html, body {
 .zone-shape.draft {
   pointer-events: none;
   opacity: 0.85;
+}
+.zone-shape.text {
+  background: transparent !important;
+  border: none;
+  overflow: visible;
+  width: 0 !important;
+  height: 0 !important;
+  outline-offset: 6px;
+}
+.zone-shape.text .zone-label-text {
+  font-size: clamp(14px, 1.4vw, 28px);
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  max-width: min(420px, 40vw);
+}
+.zone-shape.text.selected .zone-label-text,
+.zone-shape.text.is-editing .zone-label-text {
+  outline: 2px solid #2563eb;
 }
 .zone-label-text {
   position: absolute;

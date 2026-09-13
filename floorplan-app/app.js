@@ -108,6 +108,7 @@ const el = {
   brandTitle: document.getElementById("brand-title"),
   floor: document.getElementById("floor"),
   zoneLabel: document.getElementById("zone-label"),
+  zoneFreetext: document.getElementById("zone-freetext"),
   zoneColors: document.getElementById("zone-colors"),
   btnZoneRect: document.getElementById("btn-zone-rect"),
   btnZoneOff: document.getElementById("btn-zone-off"),
@@ -855,6 +856,10 @@ function zoneLabelText() {
   return (el.zoneLabel?.value || "").trim().slice(0, 40);
 }
 
+function freeTextValue() {
+  return (el.zoneFreetext?.value || "").trim().slice(0, 80);
+}
+
 function setZoneTool(tool) {
   state.zoneTool = tool === "rect" ? "rect" : null;
   state.zoneDraft = null;
@@ -873,6 +878,16 @@ function clearZoneEdit() {
 }
 
 function zoneBounds(z) {
+  if (z.type === "text") {
+    const len = Math.max(1, String(z.label || "").length);
+    const long = Math.min(420, 24 + len * 16);
+    const short = z.vertical ? Math.min(80, 28 + len * 2) : 44;
+    const w = z.vertical ? short : long;
+    const h = z.vertical ? long : short;
+    const dx = Number(z.labelDx) || 0;
+    const dy = Number(z.labelDy) || 0;
+    return { x: z.x + dx - w / 2, y: z.y + dy - h / 2, w, h };
+  }
   if (z.type === "circle") {
     return { x: z.cx - z.r, y: z.cy - z.r, w: z.r * 2, h: z.r * 2 };
   }
@@ -928,7 +943,7 @@ function initZoneColors() {
     if (sels.length) {
       pushUndo();
       for (const z of state.zones) {
-        if (state.selectedZoneUids.has(z.uid)) z.color = state.zoneColor;
+        if (state.selectedZoneUids.has(z.uid) && z.type !== "text") z.color = state.zoneColor;
       }
       renderZones();
     }
@@ -942,42 +957,55 @@ function renderZoneNode(z, { draft = false } = {}) {
   node.className = `zone-shape ${z.type}${draft ? " draft" : ""}${selected ? " selected" : ""}${
     editing ? " is-editing" : ""
   }`;
-  node.style.background = z.color || state.zoneColor;
-  if (z.type === "circle") {
-    const d = Math.max(8, z.r * 2);
-    node.style.left = `${z.cx - z.r}px`;
-    node.style.top = `${z.cy - z.r}px`;
-    node.style.width = `${d}px`;
-    node.style.height = `${d}px`;
-  } else {
+  if (z.type === "text") {
     node.style.left = `${z.x}px`;
     node.style.top = `${z.y}px`;
-    node.style.width = `${z.w}px`;
-    node.style.height = `${z.h}px`;
+  } else {
+    node.style.background = z.color || state.zoneColor;
+    if (z.type === "circle") {
+      const d = Math.max(8, z.r * 2);
+      node.style.left = `${z.cx - z.r}px`;
+      node.style.top = `${z.cy - z.r}px`;
+      node.style.width = `${d}px`;
+      node.style.height = `${d}px`;
+    } else {
+      node.style.left = `${z.x}px`;
+      node.style.top = `${z.y}px`;
+      node.style.width = `${z.w}px`;
+      node.style.height = `${z.h}px`;
+    }
   }
 
-  if (z.label) {
+  if (z.label || z.type === "text") {
     const label = document.createElement("div");
     label.className = `zone-label-text${z.vertical ? " is-vertical" : ""}`;
-    label.textContent = z.label;
+    label.textContent = z.label || "";
     const dx = Number(z.labelDx) || 0;
     const dy = Number(z.labelDy) || 0;
     const sx = z.flipX ? -1 : 1;
     const sy = z.flipY ? -1 : 1;
     label.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${sx}, ${sy})`;
     if (!draft) {
-      label.addEventListener("pointerdown", (e) => onZoneLabelPointerDown(e, z.uid));
+      if (z.type === "text") {
+        label.dataset.uid = z.uid;
+        label.addEventListener("pointerdown", onZonePointerDown);
+      } else {
+        label.addEventListener("pointerdown", (e) => onZoneLabelPointerDown(e, z.uid));
+      }
     }
     node.appendChild(label);
   }
 
   if (!draft) {
     node.dataset.uid = z.uid;
-    node.title = editing
-      ? "ハンドルでサイズ調整 / 文字をドラッグで移動"
-      : "クリックで選択 / ダブルクリックでサイズ調整";
-    node.addEventListener("pointerdown", onZonePointerDown);
-    if (editing) {
+    node.title =
+      z.type === "text"
+        ? "ドラッグで移動 / Deleteで削除"
+        : editing
+          ? "ハンドルでサイズ調整 / 文字をドラッグで移動"
+          : "クリックで選択 / ダブルクリックでサイズ調整";
+    if (z.type !== "text") node.addEventListener("pointerdown", onZonePointerDown);
+    if (editing && z.type !== "text") {
       const handles = z.type === "circle" ? ["n", "e", "s", "w"] : ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
       for (const h of handles) {
         const handle = document.createElement("div");
@@ -1013,17 +1041,24 @@ function selectZone(uidVal, { additive = false } = {}) {
   }
   if (!state.selectedZoneUids.has(state.zoneEditUid) && state.zoneEditUid) clearZoneEdit();
   const z = state.zones.find((x) => x.uid === uidVal);
-  if (z && el.zoneLabel && state.selectedZoneUids.size === 1) {
-    el.zoneLabel.value = z.label || "";
+  if (z && state.selectedZoneUids.size === 1) {
+    if (z.type === "text") {
+      if (el.zoneFreetext) el.zoneFreetext.value = z.label || "";
+    } else if (el.zoneLabel) {
+      el.zoneLabel.value = z.label || "";
+    }
   }
 }
 
 function onZonePointerDown(e) {
   if (state.zoneTool) return;
-  if (e.target.closest(".zone-handle") || e.target.closest(".zone-label-text")) return;
+  const uidVal = e.currentTarget.dataset.uid;
+  const z0 = state.zones.find((x) => x.uid === uidVal);
+  if (e.target.closest(".zone-handle")) return;
+  // 色付きゾーンのラベルは別ハンドラ。文字ゾーンはラベル自体を掴む
+  if (e.target.closest(".zone-label-text") && z0?.type !== "text") return;
   e.preventDefault();
   e.stopPropagation();
-  const uidVal = e.currentTarget.dataset.uid;
   selectZone(uidVal, { additive: e.shiftKey || e.ctrlKey || e.metaKey });
   // シングル選択ならすぐ編集ハンドル＋移動できるようにする
   if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
@@ -1040,7 +1075,9 @@ function onZonePointerDown(e) {
       orig:
         z.type === "circle"
           ? { cx: z.cx, cy: z.cy, r: z.r }
-          : { x: z.x, y: z.y, w: z.w, h: z.h },
+          : z.type === "text"
+            ? { x: z.x, y: z.y }
+            : { x: z.x, y: z.y, w: z.w, h: z.h },
       undid: false,
     };
   }
@@ -1098,12 +1135,18 @@ function enterZoneEdit(uidVal) {
   state.selectedZoneUids = new Set([uidVal]);
   state.selectedUids = new Set();
   const z = state.zones.find((x) => x.uid === uidVal);
-  if (z && el.zoneLabel) el.zoneLabel.value = z.label || "";
+  if (z) {
+    if (z.type === "text") {
+      if (el.zoneFreetext) el.zoneFreetext.value = z.label || "";
+    } else if (el.zoneLabel) {
+      el.zoneLabel.value = z.label || "";
+    }
+  }
   setZoneTool(null);
   renderZones();
   renderMachines();
   updateChrome();
-  flash("サイズ調整モード（ハンドルをドラッグ）");
+  flash(z?.type === "text" ? "文字選択中（ドラッグで移動）" : "サイズ調整モード（ハンドルをドラッグ）");
 }
 
 function finalizeZoneDraft() {
@@ -1168,9 +1211,56 @@ function applyZoneLabelFromInput() {
   if (!state.selectedZoneUids.size) return;
   pushUndo();
   for (const z of state.zones) {
-    if (state.selectedZoneUids.has(z.uid)) z.label = label;
+    if (!state.selectedZoneUids.has(z.uid) || z.type === "text") continue;
+    z.label = label;
   }
   renderZones();
+}
+
+function applyFreeTextFromInput() {
+  const label = freeTextValue();
+  const texts = state.zones.filter((z) => state.selectedZoneUids.has(z.uid) && z.type === "text");
+  if (!texts.length) return;
+  if (!label) {
+    flash("文字が空です");
+    return;
+  }
+  pushUndo();
+  for (const z of texts) z.label = label;
+  renderZones();
+  updateChrome();
+}
+
+function placeFreeTextAt(plan) {
+  const label = freeTextValue();
+  if (!label) {
+    el.zoneFreetext?.focus();
+    flash("文字を入力してからダブルクリック");
+    return;
+  }
+  pushUndo();
+  setZoneTool(null);
+  const zone = {
+    uid: crypto.randomUUID(),
+    type: "text",
+    label,
+    color: "transparent",
+    x: plan.x,
+    y: plan.y,
+    labelDx: 0,
+    labelDy: 0,
+    flipX: false,
+    flipY: false,
+    vertical: false,
+  };
+  state.zones.push(zone);
+  state.selectedUids = new Set();
+  state.selectedZoneUids = new Set([zone.uid]);
+  state.zoneEditUid = zone.uid;
+  renderZones();
+  renderMachines();
+  updateChrome();
+  flash(`文字配置: ${label}`);
 }
 
 function toggleSelectedZonesVertical() {
@@ -1259,7 +1349,15 @@ function updateChrome() {
       el.statusLink.removeAttribute("href");
     }
   } else if (zsels.length === 1) {
-    el.statusSel.textContent = zsels[0].label ? `ゾーン: ${zsels[0].label}` : "ゾーン選択中";
+    const z = zsels[0];
+    el.statusSel.textContent =
+      z.type === "text"
+        ? z.label
+          ? `文字: ${z.label}`
+          : "文字選択中"
+        : z.label
+          ? `ゾーン: ${z.label}`
+          : "ゾーン選択中";
     if (el.statusLink) {
       el.statusLink.hidden = true;
       el.statusLink.removeAttribute("href");
@@ -2320,6 +2418,19 @@ async function init() {
       e.preventDefault();
       applyZoneLabelFromInput();
     }
+  });
+  el.zoneFreetext?.addEventListener("change", applyFreeTextFromInput);
+  el.zoneFreetext?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      applyFreeTextFromInput();
+    }
+  });
+  el.viewport?.addEventListener("dblclick", (e) => {
+    if (e.target.closest(".machine")) return;
+    if (e.target.closest(".zone-shape") || e.target.closest(".zone-label-text")) return;
+    e.preventDefault();
+    placeFreeTextAt(clientToPlan(e.clientX, e.clientY));
   });
   initZoneColors();
 

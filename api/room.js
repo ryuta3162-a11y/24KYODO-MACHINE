@@ -64,10 +64,15 @@ function normalizeZones(raw) {
   return raw
     .map((z) => {
       if (!z || typeof z !== "object") return null;
-      const type = z.type === "circle" ? "circle" : "rect";
+      const type = z.type === "circle" ? "circle" : z.type === "text" ? "text" : "rect";
       const uid = String(z.uid || "").trim() || crypto.randomUUID();
-      const label = String(z.label || "").trim().slice(0, 40);
-      const color = String(z.color || "rgba(213,216,220,0.45)").slice(0, 64);
+      const label = String(z.label || "")
+        .trim()
+        .slice(0, type === "text" ? 80 : 40);
+      const color =
+        type === "text"
+          ? "transparent"
+          : String(z.color || "rgba(213,216,220,0.45)").slice(0, 64);
       const labelDx = Number(z.labelDx);
       const labelDy = Number(z.labelDy);
       const meta = {
@@ -81,6 +86,12 @@ function normalizeZones(raw) {
         flipY: !!z.flipY,
         vertical: !!z.vertical,
       };
+      if (type === "text") {
+        const x = Number(z.x);
+        const y = Number(z.y);
+        if (![x, y].every(Number.isFinite) || !label) return null;
+        return { ...meta, x, y };
+      }
       if (type === "circle") {
         const cx = Number(z.cx);
         const cy = Number(z.cy);
