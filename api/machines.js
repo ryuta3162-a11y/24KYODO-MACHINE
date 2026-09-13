@@ -246,7 +246,7 @@ async function fetchExisting(used) {
     if (photo === "freeweight_1" || (name === "パワーラック" && /bull/i.test(brand))) {
       const racks = [
         { id: "freeweight_1", label: "パワーラック", brand: "BULL", model: model || "パワーラック", photoKey: "freeweight_1" },
-        { id: "freeweight_1b", label: "パワーラック", brand: "CYBEX", model: "パワーラック", photoKey: "freeweight_1" },
+        { id: "freeweight_1b", label: "パワーラック", brand: "CYBEX", model: "パワーラック", photoKey: "freeweight_1b" },
       ];
       for (const part of racks) {
         if (used.has(part.id)) continue;

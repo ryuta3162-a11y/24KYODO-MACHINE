@@ -26,7 +26,7 @@ const AUTHOR_KEY = "kyodo-floorplan-author";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
 /** 画像差し替え時にブラウザ/CDNキャッシュを切る */
-const ART_VER = "20260913q";
+const ART_VER = "20260913r";
 const CSV_URL = "../floorplan/machines.csv";
 const CATALOG_URL = "../floorplan/machines_catalog.json";
 const MACHINES_API = "/api/machines";
@@ -34,6 +34,7 @@ const DEFAULT_CLEARANCE_CM = 80;
 const GRID_CM = 20;
 const SNAP_SCREEN_PX = 10;
 const MAX_UNDO = 60;
+const AUTOSAVE_MS = 4000;
 
 const ZONE_COLORS = [
   { id: "yellow", fill: "rgba(245,215,110,0.45)", chip: "#f5d76e", name: "黄" },
@@ -85,6 +86,9 @@ const state = {
   zonePointerMoved: false,
   /** 他フロアに置いてある台数（id -> count）。2F+3F合算の残数計算用 */
   peerCounts: {},
+  dirty: false,
+  autosaveTimer: null,
+  autosaveInFlight: false,
 };
 
 const el = {
@@ -365,6 +369,56 @@ function pushUndo() {
   if (last === snap) return;
   state.undoStack.push(snap);
   if (state.undoStack.length > MAX_UNDO) state.undoStack.shift();
+  markDirty();
+}
+
+function markDirty() {
+  state.dirty = true;
+  scheduleAutosave();
+}
+
+function isBusyForAutosave() {
+  return !!(
+    state.zoneMove ||
+    state.zoneResize ||
+    state.zoneLabelDrag ||
+    state.zoneDraft ||
+    state.dragPrimaryUid ||
+    state.panning ||
+    state.marquee ||
+    state.autosaveInFlight ||
+    el.btnSave?.disabled ||
+    el.btnSave?.classList.contains("is-saving")
+  );
+}
+
+function scheduleAutosave() {
+  if (state.autosaveTimer) clearTimeout(state.autosaveTimer);
+  state.autosaveTimer = setTimeout(() => {
+    state.autosaveTimer = null;
+    runAutosave();
+  }, AUTOSAVE_MS);
+}
+
+function runAutosave() {
+  if (!state.dirty) return;
+  if (isBusyForAutosave()) {
+    scheduleAutosave();
+    return;
+  }
+  state.autosaveInFlight = true;
+  state.dirty = false;
+  saveCloud({ auto: true })
+    .catch((err) => {
+      console.error(err);
+      state.dirty = true;
+      showSaveToast("自動保存に失敗しました", { error: true });
+      scheduleAutosave();
+    })
+    .finally(() => {
+      state.autosaveInFlight = false;
+      if (state.dirty) scheduleAutosave();
+    });
 }
 
 function undoLast() {
@@ -381,6 +435,7 @@ function undoLast() {
     state.selectedZoneUids = new Set(data.selectedZoneUids || []);
     renderZones();
     renderMachines();
+    markDirty();
     flash("戻した");
   } catch {
     flash("戻す失敗");
@@ -1443,6 +1498,11 @@ function applyRoomData(data, { keepSelection = false } = {}) {
 
 async function loadCloud(showFlash = true) {
   if (showFlash) flash("読込中…");
+  if (state.autosaveTimer) {
+    clearTimeout(state.autosaveTimer);
+    state.autosaveTimer = null;
+  }
+  state.dirty = false;
   const data = await fetchRoom();
   applyRoomData(data);
   await refreshPeerCounts();
@@ -1450,10 +1510,10 @@ async function loadCloud(showFlash = true) {
   if (showFlash) flash(data.updatedAt ? "最新を表示" : "まだ空です");
 }
 
-async function saveCloud() {
+async function saveCloud({ auto = false } = {}) {
   const snapshot = state.items.map((it) => ({ ...it }));
   const zoneSnap = state.zones.map((z) => ({ ...z }));
-  flash("保存中…");
+  if (!auto) flash("保存中…");
   el.btnSave?.classList.add("is-saving");
   try {
     const res = await fetch(`/api/room?id=${encodeURIComponent(state.roomId)}`, {
@@ -1463,6 +1523,7 @@ async function saveCloud() {
         by: authorName(),
         items: snapshot,
         zones: zoneSnap,
+        note: auto ? "自動保存" : undefined,
       }),
     });
     const json = await res.json().catch(() => ({}));
@@ -1475,7 +1536,8 @@ async function saveCloud() {
     state.zones = savedZones.map((z) => ({ ...z }));
     state.updatedAt = json.data?.updatedAt || new Date().toISOString();
     state.updatedBy = json.data?.updatedBy || authorName();
-    clearZoneEdit();
+    state.dirty = false;
+    if (!auto) clearZoneEdit();
 
     const savedEntry = json.data?.savedEntry;
     if (savedEntry && savedEntry.id) {
@@ -1536,8 +1598,8 @@ async function saveCloud() {
     renderMachines();
     await refreshPeerCounts();
     renderPalette();
-    showSaveToast("保存されました");
-    flash("保存済み");
+    showSaveToast(auto ? "自動保存しました" : "保存されました");
+    flash(auto ? "自動保存" : "保存済み");
   } finally {
     el.btnSave?.classList.remove("is-saving");
   }
