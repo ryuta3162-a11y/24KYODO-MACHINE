@@ -553,7 +553,7 @@ function renderPalette() {
       const qtyLabel =
         m.source === "new" && m.sheet_qty === 0
           ? `検討用 · ${m.width_cm}×${m.length_cm}`
-          : `${m.module_width_cm}×${m.module_length_cm} · 残り ${rem}/${m.qty}`;
+          : `${m.module_width_cm}×${m.module_length_cm} · 残り ${rem}/${m.qty}（全館）`;
       return `
       <div class="card" draggable="true" data-id="${m.id}">
         ${thumb}
