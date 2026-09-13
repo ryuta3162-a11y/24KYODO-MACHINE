@@ -136,20 +136,15 @@ html, body {
   z-index: 2;
   pointer-events: none;
 }
+.zones-layer.is-editing {
+  z-index: 9;
+}
 .zone-shape {
   position: absolute;
   box-sizing: border-box;
   pointer-events: auto;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 8px;
   color: #111;
-  font-weight: 900;
-  font-size: clamp(12px, 1.1vw, 22px);
-  line-height: 1.25;
   user-select: none;
   border: 2px solid transparent;
   touch-action: none;
@@ -160,21 +155,68 @@ html, body {
 .zone-shape.circle {
   border-radius: 50%;
 }
-.zone-shape.vertical {
-  writing-mode: vertical-rl;
-  text-orientation: upright;
-  letter-spacing: 0.08em;
-}
 .zone-shape.selected {
   outline: 3px solid #2563eb;
   outline-offset: 2px;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
   z-index: 3;
 }
+.zone-shape.is-editing {
+  outline: 3px solid #111;
+  outline-offset: 0;
+  box-shadow: none;
+  z-index: 4;
+}
 .zone-shape.draft {
   pointer-events: none;
   opacity: 0.85;
 }
+.zone-label-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: 92%;
+  padding: 4px 8px;
+  font-weight: 900;
+  font-size: clamp(12px, 1.1vw, 22px);
+  line-height: 1.25;
+  text-align: center;
+  cursor: grab;
+  pointer-events: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  touch-action: none;
+}
+.zone-label-text:active {
+  cursor: grabbing;
+}
+.zone-label-text.is-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.zone-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #111;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  pointer-events: auto;
+  z-index: 5;
+  touch-action: none;
+}
+.zone-handle.nw { left: 0; top: 0; cursor: nwse-resize; }
+.zone-handle.n  { left: 50%; top: 0; cursor: ns-resize; }
+.zone-handle.ne { left: 100%; top: 0; cursor: nesw-resize; }
+.zone-handle.e  { left: 100%; top: 50%; cursor: ew-resize; }
+.zone-handle.se { left: 100%; top: 100%; cursor: nwse-resize; }
+.zone-handle.s  { left: 50%; top: 100%; cursor: ns-resize; }
+.zone-handle.sw { left: 0; top: 100%; cursor: nesw-resize; }
+.zone-handle.w  { left: 0; top: 50%; cursor: ew-resize; }
 .viewport.zone-draw {
   cursor: crosshair;
 }

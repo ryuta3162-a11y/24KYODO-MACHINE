@@ -53,9 +53,14 @@ const state = {
   undoStack: [],
   dragMoved: false,
   lastTap: { uid: null, t: 0 },
+  lastZoneTap: { uid: null, t: 0 },
   zoneTool: null, // null | 'rect' | 'circle'
   zoneColor: ZONE_COLORS[5].fill,
   zoneDraft: null,
+  zoneEditUid: null,
+  zoneResize: null,
+  zoneLabelDrag: null,
+  zonePointerMoved: false,
 };
 
 const el = {
@@ -81,6 +86,8 @@ const el = {
   btnZoneCircle: document.getElementById("btn-zone-circle"),
   btnZoneOff: document.getElementById("btn-zone-off"),
   btnZoneVertical: document.getElementById("btn-zone-vertical"),
+  btnZoneFlipX: document.getElementById("btn-zone-flip-x"),
+  btnZoneFlipY: document.getElementById("btn-zone-flip-y"),
   btnZoneDel: document.getElementById("btn-zone-del"),
   btnFit: document.getElementById("btn-fit"),
   btnRotate: document.getElementById("btn-rotate"),
@@ -733,10 +740,58 @@ function zoneLabelText() {
 function setZoneTool(tool) {
   state.zoneTool = tool || null;
   state.zoneDraft = null;
+  if (tool) state.zoneEditUid = null;
   el.btnZoneRect?.classList.toggle("active", state.zoneTool === "rect");
   el.btnZoneCircle?.classList.toggle("active", state.zoneTool === "circle");
   el.viewport?.classList.toggle("zone-draw", !!state.zoneTool);
   renderZones();
+}
+
+function clearZoneEdit() {
+  state.zoneEditUid = null;
+  state.zoneResize = null;
+  state.zoneLabelDrag = null;
+}
+
+function zoneBounds(z) {
+  if (z.type === "circle") {
+    return { x: z.cx - z.r, y: z.cy - z.r, w: z.r * 2, h: z.r * 2 };
+  }
+  return { x: z.x, y: z.y, w: z.w, h: z.h };
+}
+
+function applyZoneResize(z, handle, plan, orig) {
+  const MIN = 24;
+  if (z.type === "circle") {
+    const r = Math.max(MIN / 2, Math.hypot(plan.x - orig.cx, plan.y - orig.cy));
+    z.cx = orig.cx;
+    z.cy = orig.cy;
+    z.r = r;
+    return;
+  }
+  let { x, y, w, h } = orig;
+  const right = x + w;
+  const bottom = y + h;
+  if (handle.includes("w")) {
+    const nx = Math.min(plan.x, right - MIN);
+    w = right - nx;
+    x = nx;
+  }
+  if (handle.includes("e")) {
+    w = Math.max(MIN, plan.x - x);
+  }
+  if (handle.includes("n")) {
+    const ny = Math.min(plan.y, bottom - MIN);
+    h = bottom - ny;
+    y = ny;
+  }
+  if (handle.includes("s")) {
+    h = Math.max(MIN, plan.y - y);
+  }
+  z.x = x;
+  z.y = y;
+  z.w = w;
+  z.h = h;
 }
 
 function initZoneColors() {
@@ -762,12 +817,13 @@ function initZoneColors() {
 }
 
 function renderZoneNode(z, { draft = false } = {}) {
+  const editing = !draft && state.zoneEditUid === z.uid;
+  const selected = !draft && state.selectedZoneUids.has(z.uid);
   const node = document.createElement("div");
-  node.className = `zone-shape ${z.type}${z.vertical ? " vertical" : ""}${draft ? " draft" : ""}${
-    !draft && state.selectedZoneUids.has(z.uid) ? " selected" : ""
+  node.className = `zone-shape ${z.type}${draft ? " draft" : ""}${selected ? " selected" : ""}${
+    editing ? " is-editing" : ""
   }`;
   node.style.background = z.color || state.zoneColor;
-  node.textContent = z.label || "";
   if (z.type === "circle") {
     const d = Math.max(8, z.r * 2);
     node.style.left = `${z.cx - z.r}px`;
@@ -780,10 +836,38 @@ function renderZoneNode(z, { draft = false } = {}) {
     node.style.width = `${z.w}px`;
     node.style.height = `${z.h}px`;
   }
+
+  if (z.label) {
+    const label = document.createElement("div");
+    label.className = `zone-label-text${z.vertical ? " is-vertical" : ""}`;
+    label.textContent = z.label;
+    const dx = Number(z.labelDx) || 0;
+    const dy = Number(z.labelDy) || 0;
+    const sx = z.flipX ? -1 : 1;
+    const sy = z.flipY ? -1 : 1;
+    label.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${sx}, ${sy})`;
+    if (!draft) {
+      label.addEventListener("pointerdown", (e) => onZoneLabelPointerDown(e, z.uid));
+    }
+    node.appendChild(label);
+  }
+
   if (!draft) {
     node.dataset.uid = z.uid;
-    node.title = z.label ? `${z.label}（クリックで選択 / Deleteで削除）` : "クリックで選択 / Deleteで削除";
+    node.title = editing
+      ? "ハンドルでサイズ調整 / 文字をドラッグで移動"
+      : "クリックで選択 / ダブルクリックでサイズ調整";
     node.addEventListener("pointerdown", onZonePointerDown);
+    if (editing) {
+      const handles = z.type === "circle" ? ["n", "e", "s", "w"] : ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+      for (const h of handles) {
+        const handle = document.createElement("div");
+        handle.className = `zone-handle ${h}`;
+        handle.dataset.handle = h;
+        handle.addEventListener("pointerdown", (e) => onZoneHandlePointerDown(e, z.uid, h));
+        node.appendChild(handle);
+      }
+    }
   }
   return node;
 }
@@ -791,6 +875,7 @@ function renderZoneNode(z, { draft = false } = {}) {
 function renderZones() {
   if (!el.zonesLayer) return;
   el.zonesLayer.innerHTML = "";
+  el.zonesLayer.classList.toggle("is-editing", !!state.zoneEditUid);
   for (const z of state.zones) {
     el.zonesLayer.appendChild(renderZoneNode(z));
   }
@@ -799,25 +884,89 @@ function renderZones() {
   }
 }
 
-function onZonePointerDown(e) {
-  if (state.zoneTool) return;
-  e.preventDefault();
-  e.stopPropagation();
-  const uidVal = e.currentTarget.dataset.uid;
+function selectZone(uidVal, { additive = false } = {}) {
   state.selectedUids = new Set();
-  if (e.shiftKey || e.ctrlKey || e.metaKey) {
+  if (additive) {
     if (state.selectedZoneUids.has(uidVal)) state.selectedZoneUids.delete(uidVal);
     else state.selectedZoneUids.add(uidVal);
   } else {
     state.selectedZoneUids = new Set([uidVal]);
   }
+  if (!state.selectedZoneUids.has(state.zoneEditUid) && state.zoneEditUid) clearZoneEdit();
   const z = state.zones.find((x) => x.uid === uidVal);
   if (z && el.zoneLabel && state.selectedZoneUids.size === 1) {
     el.zoneLabel.value = z.label || "";
   }
+}
+
+function onZonePointerDown(e) {
+  if (state.zoneTool) return;
+  if (e.target.closest(".zone-handle") || e.target.closest(".zone-label-text")) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const uidVal = e.currentTarget.dataset.uid;
+  selectZone(uidVal, { additive: e.shiftKey || e.ctrlKey || e.metaKey });
+  state.zonePointerMoved = false;
+  state.zoneTapCandidate = uidVal;
   renderZones();
   renderMachines();
   updateChrome();
+}
+
+function onZoneHandlePointerDown(e, uidVal, handle) {
+  e.preventDefault();
+  e.stopPropagation();
+  const z = state.zones.find((x) => x.uid === uidVal);
+  if (!z) return;
+  pushUndo();
+  const plan = clientToPlan(e.clientX, e.clientY);
+  state.zoneTapCandidate = null;
+  state.zoneResize = {
+    uid: uidVal,
+    handle,
+    start: plan,
+    orig:
+      z.type === "circle"
+        ? { cx: z.cx, cy: z.cy, r: z.r }
+        : { x: z.x, y: z.y, w: z.w, h: z.h },
+  };
+  e.currentTarget.setPointerCapture?.(e.pointerId);
+}
+
+function onZoneLabelPointerDown(e, uidVal) {
+  if (state.zoneTool) return;
+  e.preventDefault();
+  e.stopPropagation();
+  selectZone(uidVal);
+  const z = state.zones.find((x) => x.uid === uidVal);
+  if (!z) return;
+  const plan = clientToPlan(e.clientX, e.clientY);
+  state.zoneLabelDrag = {
+    uid: uidVal,
+    start: plan,
+    origDx: Number(z.labelDx) || 0,
+    origDy: Number(z.labelDy) || 0,
+    undid: false,
+  };
+  state.zonePointerMoved = false;
+  state.zoneTapCandidate = uidVal;
+  e.currentTarget.setPointerCapture?.(e.pointerId);
+  renderZones();
+  renderMachines();
+  updateChrome();
+}
+
+function enterZoneEdit(uidVal) {
+  state.zoneEditUid = uidVal;
+  state.selectedZoneUids = new Set([uidVal]);
+  state.selectedUids = new Set();
+  const z = state.zones.find((x) => x.uid === uidVal);
+  if (z && el.zoneLabel) el.zoneLabel.value = z.label || "";
+  setZoneTool(null);
+  renderZones();
+  renderMachines();
+  updateChrome();
+  flash("サイズ調整モード（ハンドルをドラッグ）");
 }
 
 function finalizeZoneDraft() {
@@ -844,6 +993,11 @@ function finalizeZoneDraft() {
           cx: d.cx,
           cy: d.cy,
           r: d.r,
+          labelDx: 0,
+          labelDy: 0,
+          flipX: false,
+          flipY: false,
+          vertical: false,
         }
       : {
           uid: uid(),
@@ -854,10 +1008,16 @@ function finalizeZoneDraft() {
           y: d.y,
           w: d.w,
           h: d.h,
+          labelDx: 0,
+          labelDy: 0,
+          flipX: false,
+          flipY: false,
+          vertical: false,
         };
   state.zones.push(zone);
   state.selectedZoneUids = new Set([zone.uid]);
   state.selectedUids = new Set();
+  state.zoneEditUid = zone.uid;
   renderZones();
   renderMachines();
   updateChrome();
@@ -872,6 +1032,28 @@ function applyZoneLabelFromInput() {
     if (state.selectedZoneUids.has(z.uid)) z.label = label;
   }
   renderZones();
+}
+
+function toggleSelectedZonesVertical() {
+  if (!state.selectedZoneUids.size) return;
+  pushUndo();
+  for (const z of state.zones) {
+    if (state.selectedZoneUids.has(z.uid)) z.vertical = !z.vertical;
+  }
+  renderZones();
+  updateChrome();
+}
+
+function flipSelectedZones(axis) {
+  if (!state.selectedZoneUids.size) return;
+  pushUndo();
+  for (const z of state.zones) {
+    if (!state.selectedZoneUids.has(z.uid)) continue;
+    if (axis === "x") z.flipX = !z.flipX;
+    if (axis === "y") z.flipY = !z.flipY;
+  }
+  renderZones();
+  updateChrome();
 }
 
 function renderMarquee() {
@@ -973,6 +1155,8 @@ function updateChrome() {
   el.btnDel.disabled = !has && !hasZone;
   if (el.btnZoneDel) el.btnZoneDel.disabled = !hasZone;
   if (el.btnZoneVertical) el.btnZoneVertical.disabled = !hasZone;
+  if (el.btnZoneFlipX) el.btnZoneFlipX.disabled = !hasZone;
+  if (el.btnZoneFlipY) el.btnZoneFlipY.disabled = !hasZone;
   if (el.statusRoom) el.statusRoom.textContent = state.roomId;
   renderProductLinkChips();
 }
@@ -1013,6 +1197,7 @@ function applyRoomData(data, { keepSelection = false } = {}) {
   if (!keepSelection) {
     state.selectedUids = new Set();
     state.selectedZoneUids = new Set();
+    clearZoneEdit();
   }
   renderHistory();
   renderZones();
@@ -1164,6 +1349,7 @@ function clearAll() {
   state.zones = [];
   state.selectedUids = new Set();
   state.selectedZoneUids = new Set();
+  clearZoneEdit();
   renderZones();
   renderMachines();
 }
@@ -1259,6 +1445,7 @@ function onMachinePointerDown(e) {
 
 function onViewportPointerDown(e) {
   if (e.target.closest(".machine")) return;
+  if (e.target.closest(".zone-handle") || e.target.closest(".zone-label-text")) return;
   if (e.target.closest(".zone-shape") && !state.zoneTool) return;
 
   // ゾーン描画モード: ドラッグで四角／丸
@@ -1267,6 +1454,7 @@ function onViewportPointerDown(e) {
     const plan = clientToPlan(e.clientX, e.clientY);
     state.selectedUids = new Set();
     state.selectedZoneUids = new Set();
+    clearZoneEdit();
     state.zoneDraft = {
       type: state.zoneTool,
       color: state.zoneColor,
@@ -1291,6 +1479,7 @@ function onViewportPointerDown(e) {
     // 通常の空き地 = パン＋選択解除
     state.selectedUids = new Set();
     state.selectedZoneUids = new Set();
+    clearZoneEdit();
     renderZones();
     renderMachines();
     state.panning = true;
@@ -1305,6 +1494,7 @@ function onViewportPointerDown(e) {
   if (!(e.shiftKey)) {
     state.selectedUids = new Set();
     state.selectedZoneUids = new Set();
+    clearZoneEdit();
   }
   state.marquee = { x0: plan.x, y0: plan.y, x1: plan.x, y1: plan.y };
   el.viewport.classList.add("selecting");
@@ -1314,6 +1504,33 @@ function onViewportPointerDown(e) {
 }
 
 function onPointerMove(e) {
+  if (state.zoneResize) {
+    const z = state.zones.find((x) => x.uid === state.zoneResize.uid);
+    if (!z) return;
+    const plan = clientToPlan(e.clientX, e.clientY);
+    applyZoneResize(z, state.zoneResize.handle, plan, state.zoneResize.orig);
+    state.zonePointerMoved = true;
+    renderZones();
+    return;
+  }
+  if (state.zoneLabelDrag) {
+    const z = state.zones.find((x) => x.uid === state.zoneLabelDrag.uid);
+    if (!z) return;
+    const plan = clientToPlan(e.clientX, e.clientY);
+    const dx = plan.x - state.zoneLabelDrag.start.x;
+    const dy = plan.y - state.zoneLabelDrag.start.y;
+    if (Math.hypot(dx, dy) > 1) {
+      if (!state.zoneLabelDrag.undid) {
+        pushUndo();
+        state.zoneLabelDrag.undid = true;
+      }
+      state.zonePointerMoved = true;
+    }
+    z.labelDx = state.zoneLabelDrag.origDx + dx;
+    z.labelDy = state.zoneLabelDrag.origDy + dy;
+    renderZones();
+    return;
+  }
   if (state.zoneDraft) {
     const plan = clientToPlan(e.clientX, e.clientY);
     const d = state.zoneDraft;
@@ -1383,6 +1600,37 @@ function onPointerUp() {
   if (state.zoneDraft) {
     finalizeZoneDraft();
   }
+  const wasResizing = !!state.zoneResize;
+  if (state.zoneResize) {
+    state.zoneResize = null;
+    updateChrome();
+  }
+  if (state.zoneLabelDrag) {
+    const uidVal = state.zoneLabelDrag.uid;
+    const moved = state.zonePointerMoved;
+    state.zoneLabelDrag = null;
+    if (!moved && uidVal) {
+      const now = performance.now();
+      if (state.lastZoneTap.uid === uidVal && now - state.lastZoneTap.t < 450) {
+        state.lastZoneTap = { uid: null, t: 0 };
+        enterZoneEdit(uidVal);
+      } else {
+        state.lastZoneTap = { uid: uidVal, t: now };
+      }
+    }
+  } else if (!wasResizing && state.zoneTapCandidate && !state.zonePointerMoved) {
+    const uidVal = state.zoneTapCandidate;
+    const now = performance.now();
+    if (state.lastZoneTap.uid === uidVal && now - state.lastZoneTap.t < 450) {
+      state.lastZoneTap = { uid: null, t: 0 };
+      enterZoneEdit(uidVal);
+    } else {
+      state.lastZoneTap = { uid: uidVal, t: now };
+    }
+  }
+  state.zoneTapCandidate = null;
+  state.zonePointerMoved = false;
+
   if (state.marquee) {
     const { x0, y0, x1, y1 } = state.marquee;
     const moved = Math.hypot(x1 - x0, y1 - y0) > 4;
@@ -1486,27 +1734,33 @@ async function exportPng() {
     ctx.fillStyle = z.color || "rgba(213,216,220,0.45)";
     ctx.strokeStyle = "rgba(17,17,17,0.35)";
     ctx.lineWidth = 2;
+    const bx = z.type === "circle" ? z.cx : z.x + z.w / 2;
+    const by = z.type === "circle" ? z.cy : z.y + z.h / 2;
     if (z.type === "circle") {
       ctx.beginPath();
       ctx.arc(z.cx, z.cy, z.r, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      if (z.label) {
-        ctx.fillStyle = "#111111";
-        ctx.font = "bold 28px 'Noto Sans JP', sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(z.label, z.cx, z.cy);
-      }
     } else {
       ctx.fillRect(z.x, z.y, z.w, z.h);
       ctx.strokeRect(z.x, z.y, z.w, z.h);
-      if (z.label) {
-        ctx.fillStyle = "#111111";
-        ctx.font = "bold 28px 'Noto Sans JP', sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(z.label, z.x + z.w / 2, z.y + z.h / 2);
+    }
+    if (z.label) {
+      const lx = bx + (Number(z.labelDx) || 0);
+      const ly = by + (Number(z.labelDy) || 0);
+      ctx.translate(lx, ly);
+      ctx.scale(z.flipX ? -1 : 1, z.flipY ? -1 : 1);
+      ctx.fillStyle = "#111111";
+      ctx.font = "bold 28px 'Noto Sans JP', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      if (z.vertical) {
+        const chars = [...String(z.label)];
+        const lineH = 30;
+        const startY = -((chars.length - 1) * lineH) / 2;
+        chars.forEach((ch, i) => ctx.fillText(ch, 0, startY + i * lineH));
+      } else {
+        ctx.fillText(z.label, 0, 0);
       }
     }
     ctx.restore();
@@ -1605,20 +1859,11 @@ function delSelectedZones() {
   pushUndo();
   state.zones = state.zones.filter((z) => !state.selectedZoneUids.has(z.uid));
   state.selectedZoneUids = new Set();
+  clearZoneEdit();
   renderZones();
   renderMachines();
   updateChrome();
   flash("ゾーン削除");
-}
-
-function toggleSelectedZonesVertical() {
-  if (!state.selectedZoneUids.size) return;
-  pushUndo();
-  for (const z of state.zones) {
-    if (state.selectedZoneUids.has(z.uid)) z.vertical = !z.vertical;
-  }
-  renderZones();
-  updateChrome();
 }
 
 function delSelected() {
@@ -1636,6 +1881,7 @@ function delSelected() {
     state.zones = state.zones.filter((z) => !state.selectedZoneUids.has(z.uid));
     state.selectedZoneUids = new Set();
   }
+  clearZoneEdit();
   renderZones();
   renderMachines();
   updateChrome();
@@ -1816,6 +2062,12 @@ async function init() {
       e.preventDefault();
     }
     if (typing) return;
+    if (e.key === "Escape" && state.zoneEditUid) {
+      clearZoneEdit();
+      renderZones();
+      updateChrome();
+      return;
+    }
     if ((e.key === "Delete" || e.key === "Backspace") && (state.selectedUids.size || state.selectedZoneUids.size)) {
       e.preventDefault();
       delSelected();
@@ -1863,6 +2115,8 @@ async function init() {
   el.btnZoneOff?.addEventListener("click", () => setZoneTool(null));
   el.btnZoneDel?.addEventListener("click", delSelectedZones);
   el.btnZoneVertical?.addEventListener("click", toggleSelectedZonesVertical);
+  el.btnZoneFlipX?.addEventListener("click", () => flipSelectedZones("x"));
+  el.btnZoneFlipY?.addEventListener("click", () => flipSelectedZones("y"));
   el.zoneLabel?.addEventListener("change", applyZoneLabelFromInput);
   el.zoneLabel?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
