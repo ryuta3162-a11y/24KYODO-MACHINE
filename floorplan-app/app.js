@@ -763,8 +763,8 @@ function renderPalette() {
   const q = state.query.trim().toLowerCase();
   const list = state.catalog.filter((m) => {
     if (remainingOf(m.id) <= 0) return false;
-    // ピラティスは新規のみのため、既存/新規タブをまたいで表示
-    if (state.filter !== "pilates" && machineSource(m) !== state.source) return false;
+    // 専用カテゴリは既存/新規タブをまたいで表示し、空の一覧にしない。
+    if (!["pilates", "hyrox"].includes(state.filter) && machineSource(m) !== state.source) return false;
     if (state.filter !== "all" && machineGenre(m) !== state.filter) return false;
     if (!q) return true;
     return (
