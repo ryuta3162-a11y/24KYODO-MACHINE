@@ -11,13 +11,12 @@ const ROOMS = {
   },
   "kyodo-3f": {
     title: "経堂 3F",
-    // 図面表記どおり 1960×1140cm（20cmマス = 98×57）。縦横とも 1px=1cm
-    w: 1960,
-    h: 1140,
+    // v7高画質（中央揃え余白つき）。グリッドを正方形補正し 1px=1cm
+    w: 2313,
+    h: 1438,
     floor: "../floorplan/floor_3f.jpg",
     labeledCm: { w: 1960, h: 1140 },
     gridCm: 20,
-    gridCells: { w: 98, h: 57 },
   },
 };
 const DEFAULT_ROOM = "kyodo-2f";
@@ -27,7 +26,7 @@ const AUTHOR_KEY = "kyodo-floorplan-author";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
 /** 画像差し替え時にブラウザ/CDNキャッシュを切る */
-const ART_VER = "20260913n";
+const ART_VER = "20260913o";
 const CSV_URL = "../floorplan/machines.csv";
 const CATALOG_URL = "../floorplan/machines_catalog.json";
 const MACHINES_API = "/api/machines";
