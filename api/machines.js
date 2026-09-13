@@ -22,6 +22,12 @@ const GENRE = {
   pilates: "ピラティス",
 };
 
+/** シート上の商品を差し替えても、配置済みデータのIDは維持する。 */
+const STABLE_NEW_IDS = {
+  "GYM GARAGE ヒップスラスト GG-C12015": "new_standing_abductor",
+  "GYM GARAGE プルダウン／シーテッドロウ GG-C12032": "new_seated_row_machine_dual_row系",
+};
+
 function parseCsv(text) {
   const rows = [];
   let i = 0;
@@ -113,13 +119,14 @@ function filesFor(id, photo) {
 }
 
 function slugId(name, used) {
-  const base =
-    "new_" +
-    String(name)
-      .toLowerCase()
-      .replace(/[^a-z0-9\u3040-\u30ff\u4e00-\u9faf]+/gi, "_")
-      .replace(/^_+|_+$/g, "")
-      .slice(0, 48);
+  const stableId = STABLE_NEW_IDS[String(name || "").trim()];
+  const base = stableId ||
+    ("new_" +
+      String(name)
+        .toLowerCase()
+        .replace(/[^a-z0-9\u3040-\u30ff\u4e00-\u9faf]+/gi, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 48));
   let id = base || "new_item";
   let n = 2;
   while (used.has(id)) {
@@ -171,6 +178,7 @@ function genreNew(name, zone, planTarget = "") {
   if (/curve|powermill|climb|stepmill|tread|cross trainer|integrity\+|有酸素/.test(s)) {
     return "cardio";
   }
+  if (/gym garage|gg-c12015|gg-c12032/.test(s)) return "stack";
   if (
     /select |selectorized|insignia|abdominal crunch|assist dip|3d multi-abductor|ウェイトスタック|hammer strength select|hoist|roc-it|cybex ion|matrix.?ultra|prone leg/.test(
       s

@@ -40,6 +40,8 @@ export const NEW_DISPLAY_NAMES = {
   "Assist Dip & Chin": "Hammer Strength　アシストディップ／チン",
   "Insignia Series Chest Press": "Life Fitness　チェストプレス（Insignia）",
   "Standing Abductor": "Life Fitness　スタンディングアブダクター",
+  "GYM GARAGE ヒップスラスト GG-C12015": "GYM GARAGE　ヒップスラスト（GG-C12015）",
+  "GYM GARAGE プルダウン／シーテッドロウ GG-C12032": "GYM GARAGE　プルダウン／シーテッドロウ（GG-C12032）",
   "SkiErg PM5 スタンド付": "Concept2　スキーエルゴ PM5（スタンド付）",
   "RowErg": "Concept2　ローイングエルゴ",
   "BikeErg": "Concept2　バイクエルゴ",
