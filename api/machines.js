@@ -242,6 +242,77 @@ async function fetchExisting(used) {
       continue;
     }
 
+    // BULLパワーラック1台 + 不足のCYBEXパワーラック1台
+    if (photo === "freeweight_1" || (name === "パワーラック" && /bull/i.test(brand))) {
+      const racks = [
+        { id: "freeweight_1", label: "パワーラック", brand: "BULL", model: model || "パワーラック", photoKey: "freeweight_1" },
+        { id: "freeweight_1b", label: "パワーラック", brand: "CYBEX", model: "パワーラック", photoKey: "freeweight_1" },
+      ];
+      for (const part of racks) {
+        if (used.has(part.id)) continue;
+        used.add(part.id);
+        machines.push({
+          id: part.id,
+          name: displayExisting(part.label, part.brand),
+          brand: part.brand,
+          model: part.model,
+          category,
+          genre,
+          source: "existing",
+          qty: 1,
+          width_cm,
+          length_cm,
+          clearance_cm: CLEARANCE_CM,
+          module_width_cm,
+          module_length_cm,
+          place_px_w: module_width_cm,
+          place_px_h: module_length_cm,
+          has_art: true,
+          ...filesFor(part.id, part.photoKey),
+          photo_key: part.photoKey,
+          link,
+          note: part.id === "freeweight_1b" ? "シートに無く不足していたCYBEXパワーラックを追加" : "台数を1台に補正",
+        });
+      }
+      continue;
+    }
+
+    // スミスマシン3台 → Technogym / Matrix / CYBEX 各1台
+    if (photo === "freeweight_6" || name === "スミスマシン") {
+      const smiths = [
+        { id: "freeweight_6", label: "スミスマシン", brand: "Technogym", model: "Selection系想定", photoKey: "freeweight_6" },
+        { id: "freeweight_6b", label: "スミスマシン", brand: "Matrix", model: "スミスマシン", photoKey: "freeweight_6" },
+        { id: "freeweight_6c", label: "スミスマシン", brand: "CYBEX", model: "スミスマシン", photoKey: "freeweight_6" },
+      ];
+      for (const part of smiths) {
+        if (used.has(part.id)) continue;
+        used.add(part.id);
+        machines.push({
+          id: part.id,
+          name: displayExisting(part.label, part.brand),
+          brand: part.brand,
+          model: part.model,
+          category,
+          genre,
+          source: "existing",
+          qty: 1,
+          width_cm,
+          length_cm,
+          clearance_cm: CLEARANCE_CM,
+          module_width_cm,
+          module_length_cm,
+          place_px_w: module_width_cm,
+          place_px_h: module_length_cm,
+          has_art: true,
+          ...filesFor(part.id, part.photoKey),
+          photo_key: part.photoKey,
+          link,
+          note: "メーカー別に各1台へ分割",
+        });
+      }
+      continue;
+    }
+
     const id = resolveId(photo, used);
     if (!id) continue;
     const files = filesFor(id, photo);
