@@ -1,3 +1,5 @@
+import { displayExisting, displayNew } from "./displayNames.js";
+
 const SHEET_ID = "1YR4UNjOHT-AManewnSOEPxuR01kBVwXfgoCAjDsPeOw";
 const EXISTING_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("既存マシン")}`;
 const NEW_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("新マシン")}`;
@@ -198,8 +200,8 @@ async function fetchExisting(used) {
     const brand = (r[idx["ブランド"]] || "").trim();
     const model = (r[idx["シリーズ/型番"]] || "").trim();
     const files = filesFor(id, photo);
-    let displayName = name;
-    if (name === "ケーブルマシン" && brand) displayName = `${brand} ケーブルマシン`;
+    // 例: CYBEX　ショルダープレス
+    const displayName = displayExisting(name, brand);
     const module_width_cm = width_cm + CLEARANCE_CM * 2;
     const module_length_cm = length_cm + CLEARANCE_CM * 2;
     const genre = genreExisting(category);
@@ -263,9 +265,11 @@ async function fetchNew(used) {
     const id = slugId(name, used);
     const module_width_cm = width_cm + CLEARANCE_CM * 2;
     const module_length_cm = length_cm + CLEARANCE_CM * 2;
+    const displayName = displayNew(name);
     machines.push({
       id,
-      name,
+      name: displayName,
+      sheet_name: name,
       brand: "",
       model: zone || "",
       category:
