@@ -394,6 +394,40 @@ html, body {
 }
 .machine.hidden-item { display: none; }
 
+.product-link-chip {
+  position: absolute;
+  z-index: 20;
+  transform: translate(-50%, -100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.product-link-chip:hover {
+  filter: brightness(1.08);
+}
+
+.status-link {
+  color: #fff;
+  background: var(--red);
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+}
+.status-link[hidden] { display: none !important; }
+
 .statusbar {
   display: flex;
   gap: 16px;

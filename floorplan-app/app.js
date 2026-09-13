@@ -8,7 +8,7 @@ const AUTHOR_KEY = "kyodo-floorplan-author";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
 /** 画像差し替え時にブラウザ/CDNキャッシュを切る */
-const ART_VER = "20260913g";
+const ART_VER = "20260913h";
 const CSV_URL = "../floorplan/machines.csv";
 const CATALOG_URL = "../floorplan/machines_catalog.json";
 const MACHINES_API = "/api/machines";
@@ -59,6 +59,7 @@ const el = {
   statusScale: document.getElementById("status-scale"),
   statusCount: document.getElementById("status-count"),
   statusSel: document.getElementById("status-sel"),
+  statusLink: document.getElementById("status-link"),
   btnFit: document.getElementById("btn-fit"),
   btnRotate: document.getElementById("btn-rotate"),
   btnDup: document.getElementById("btn-dup"),
@@ -661,6 +662,39 @@ function renderMachines() {
   renderMarquee();
   updateChrome();
   renderPalette();
+  renderProductLinkChips();
+}
+
+function productLinkOf(machine) {
+  const link = String(machine?.link || "").trim();
+  return /^https?:\/\//i.test(link) ? link : "";
+}
+
+function renderProductLinkChips() {
+  el.layer.querySelectorAll(".product-link-chip").forEach((n) => n.remove());
+  const sels = selectedItems().filter((i) => !i.hidden);
+  if (sels.length !== 1) return;
+  const item = sels[0];
+  const m = findMachine(item.id);
+  const url = productLinkOf(m);
+  if (!url) return;
+  const { bw } = itemSize(item, m || {});
+  const chip = document.createElement("a");
+  chip.className = "product-link-chip";
+  chip.href = url;
+  chip.target = "_blank";
+  chip.rel = "noopener noreferrer";
+  chip.textContent = "商品詳細";
+  chip.title = url;
+  chip.style.left = `${item.x + bw / 2}px`;
+  chip.style.top = `${Math.max(0, item.y - 6)}px`;
+  chip.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+  });
+  chip.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+  el.layer.appendChild(chip);
 }
 
 function renderMarquee() {
@@ -706,22 +740,47 @@ function updateChrome() {
   if (sels.length === 1) {
     const m = findMachine(sels[0].id);
     el.statusSel.textContent = m ? m.name : "";
+    const url = productLinkOf(m);
+    if (el.statusLink) {
+      if (url) {
+        el.statusLink.hidden = false;
+        el.statusLink.href = url;
+        el.statusLink.textContent = "商品URL";
+      } else {
+        el.statusLink.hidden = true;
+        el.statusLink.removeAttribute("href");
+        el.statusLink.textContent = "";
+      }
+    }
   } else if (sels.length > 1) {
     el.statusSel.textContent = `${sels.length}台`;
+    if (el.statusLink) {
+      el.statusLink.hidden = true;
+      el.statusLink.removeAttribute("href");
+    }
   } else if (state.updatedAt) {
     const t = new Date(state.updatedAt);
     const stamp = Number.isNaN(t.getTime())
       ? state.updatedAt
       : t.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
     el.statusSel.textContent = `${state.updatedBy || "?"} ${stamp}`;
+    if (el.statusLink) {
+      el.statusLink.hidden = true;
+      el.statusLink.removeAttribute("href");
+    }
   } else {
     el.statusSel.textContent = "";
+    if (el.statusLink) {
+      el.statusLink.hidden = true;
+      el.statusLink.removeAttribute("href");
+    }
   }
   const has = sels.length > 0;
   el.btnRotate.disabled = !has;
   el.btnDup.disabled = !has;
   el.btnDel.disabled = !has;
   if (el.statusRoom) el.statusRoom.textContent = state.roomId;
+  renderProductLinkChips();
 }
 
 function renderHistory() {
@@ -1022,6 +1081,7 @@ function onPointerMove(e) {
         node.style.top = `${item.y}px`;
       }
     }
+    renderProductLinkChips();
     return;
   }
   if (state.marquee) {
@@ -1316,6 +1376,7 @@ async function loadCatalog() {
         module_length_cm: m.module_length_cm || m.length_cm + DEFAULT_CLEARANCE_CM * 2,
         place_file: m.place_file || (m.source === "new" ? "" : `${m.id}_place.png`),
         preview_file: m.preview_file || (m.source === "new" ? "" : `${m.id}_preview.png`),
+        link: m.link || "",
       }));
       return {
         source: "sheet",

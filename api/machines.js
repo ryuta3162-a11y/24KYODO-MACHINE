@@ -209,6 +209,8 @@ async function fetchExisting(used) {
     const module_width_cm = width_cm + CLEARANCE_CM * 2;
     const module_length_cm = length_cm + CLEARANCE_CM * 2;
     const genre = genreExisting(category);
+    const linkCol = idx["商品リンク"] ?? idx["リンク"] ?? idx["URL"];
+    const link = linkCol != null ? String(r[linkCol] || "").trim() : "";
     machines.push({
       id,
       name: displayName,
@@ -228,6 +230,7 @@ async function fetchExisting(used) {
       has_art: true,
       ...files,
       photo_key: photo,
+      link,
     });
   }
   return machines;

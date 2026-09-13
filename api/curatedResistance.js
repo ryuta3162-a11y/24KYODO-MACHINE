@@ -112,4 +112,7 @@ export const SKIP_NEW_SHEET_NAMES = new Set([
   "Pure Kraft Lying Leg Curl",
   "Hip Thrust Elite",
   "Abdominal Crunch",
+  // 既存CYBEX脚があるのでHS Select脚は不要
+  "Hammer Strength Select Leg Extension",
+  "Hammer Strength Select Leg Curl",
 ]);
