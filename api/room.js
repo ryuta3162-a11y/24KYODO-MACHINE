@@ -3,7 +3,7 @@ import { put, list } from "@vercel/blob";
 const MAX_HISTORY = 40;
 const PLANS = {
   "kyodo-2f": { w: 3388, h: 2058, pxPerCm: 1 },
-  "kyodo-3f": { w: 2120, h: 1300, pxPerCm: 1 },
+  "kyodo-3f": { w: 1960, h: 1140, pxPerCm: 1 },
 };
 
 function planFor(roomId) {

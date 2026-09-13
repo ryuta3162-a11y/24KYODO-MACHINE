@@ -11,13 +11,13 @@ const ROOMS = {
   },
   "kyodo-3f": {
     title: "経堂 3F",
-    // 図面表記 1960×1140cm + 周囲余白80cm（端が切れないように）
-    // 採寸後に合わせる場合はここを更新
-    w: 2120,
-    h: 1300,
+    // 図面表記どおり 1960×1140cm（20cmマス = 98×57）。縦横とも 1px=1cm
+    w: 1960,
+    h: 1140,
     floor: "../floorplan/floor_3f.jpg",
-    contentOrigin: { x: 80, y: 80 },
     labeledCm: { w: 1960, h: 1140 },
+    gridCm: 20,
+    gridCells: { w: 98, h: 57 },
   },
 };
 const DEFAULT_ROOM = "kyodo-2f";
@@ -27,7 +27,7 @@ const AUTHOR_KEY = "kyodo-floorplan-author";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
 /** 画像差し替え時にブラウザ/CDNキャッシュを切る */
-const ART_VER = "20260913m";
+const ART_VER = "20260913n";
 const CSV_URL = "../floorplan/machines.csv";
 const CATALOG_URL = "../floorplan/machines_catalog.json";
 const MACHINES_API = "/api/machines";
@@ -43,6 +43,10 @@ const ZONE_COLORS = [
   { id: "green", fill: "rgba(169,223,191,0.45)", chip: "#a9dfbf", name: "緑" },
   { id: "blue", fill: "rgba(174,214,241,0.45)", chip: "#aed6f1", name: "青" },
   { id: "gray", fill: "rgba(213,216,220,0.5)", chip: "#d5d8dc", name: "灰" },
+  { id: "lavender", fill: "rgba(210,180,230,0.45)", chip: "#d2b4e6", name: "紫" },
+  { id: "teal", fill: "rgba(130,210,210,0.45)", chip: "#82d2d2", name: "青緑" },
+  { id: "coral", fill: "rgba(245,160,150,0.45)", chip: "#f5a096", name: "赤" },
+  { id: "cream", fill: "rgba(250,240,210,0.5)", chip: "#faf0d2", name: "クリーム" },
 ];
 
 const state = {
@@ -223,7 +227,8 @@ function applyView() {
 
 function fitView() {
   const rect = el.viewport.getBoundingClientRect();
-  const pad = state.roomId === "kyodo-3f" ? 48 : 24;
+  // 図面ボックス（アスペクト固定）を崩さず、画面内に全体が入るよう余白を多めに取る
+  const pad = state.roomId === "kyodo-3f" ? 56 : 24;
   const sx = (rect.width - pad * 2) / PLAN_W;
   const sy = (rect.height - pad * 2) / PLAN_H;
   const scale = Math.max(0.05, Math.min(sx, sy));

@@ -3,14 +3,15 @@
     "w": 1960,
     "h": 1140
   },
-  "padCm": 80,
+  "gridCm": 20,
+  "gridCells": {
+    "w": 98,
+    "h": 57
+  },
   "planPx": {
-    "w": 2120,
-    "h": 1300
+    "w": 1960,
+    "h": 1140
   },
-  "contentOrigin": {
-    "x": 80,
-    "y": 80
-  },
-  "note": "採寸後に labeledCm / pad を更新して再生成する"
+  "pxPerCm": 1,
+  "note": "縦横とも1px=1cm。余白はビュー側fitViewで確保し図面ボックスは1960x1140固定。"
 }
