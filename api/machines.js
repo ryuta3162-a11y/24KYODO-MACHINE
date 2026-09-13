@@ -19,6 +19,7 @@ const GENRE = {
   stack: "スタック",
   plate: "プレート",
   freeweight: "FW",
+  pilates: "ピラティス",
 };
 
 function parseCsv(text) {
@@ -319,7 +320,7 @@ function buildCuratedResistance(used) {
       category:
         genre === "cardio" || genre === "hyrox"
           ? "cardio"
-          : genre === "freeweight"
+          : genre === "freeweight" || genre === "pilates"
             ? "freeweight"
             : "resistance",
       genre,

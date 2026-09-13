@@ -388,6 +388,7 @@ const GENRE_LABEL = {
   stack: "スタック",
   plate: "プレート",
   freeweight: "FW",
+  pilates: "ピラティス",
 };
 
 function machineGenre(m) {
