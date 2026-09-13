@@ -136,9 +136,19 @@ function genreExisting(category) {
   return "stack";
 }
 
-function genreNew(name, zone) {
+function genreNew(name, zone, planTarget = "") {
   const s = `${name} ${zone}`.toLowerCase();
-  // HYROXラインナップは一旦棚上げ（シートからも削除予定）。誤って残っていても出さない
+  const target = String(planTarget || "").trim();
+  // 「図面対象」列で備品と旧案を除外し、今回採用したHYROXだけを再表示する。
+  if (target === "備品" || target === "対象外" || target === "旧案保留") return null;
+  if (
+    target === "対象" &&
+    (/hyrox|ski|スキーエルゴ|rowerg|ローエルゴ|ローイングマシン|sled|スレッド|ターフ/.test(s) ||
+      /^HYROX/i.test(String(zone || "")))
+  ) {
+    return "hyrox";
+  }
+  // 旧HYROX案は比較用にシートへ残すが、図面対象が明示されるまでは表示しない。
   if (
     /hyrox|ski|rowerg|bikeerg|sled|wall.?ball|kettle|sandbag|tire|farmer|yoke|log bar|パワーマックス|dog sled/.test(
       s
@@ -442,6 +452,7 @@ async function fetchNew(used) {
   const linkI = idx["商品リンク"];
   const noteI = idx["備考"];
   const statusI = idx["状態"];
+  const planTargetI = idx["図面対象"];
 
   const machines = [];
   for (const r of rows.slice(1)) {
@@ -455,7 +466,8 @@ async function fetchNew(used) {
     // 台数0の候補も配置検討できるよう多めに
     const qty = Number.isFinite(rawQty) && rawQty > 0 ? rawQty : 9;
     const zone = zoneI != null ? String(r[zoneI] || "").trim() : "";
-    const genre = genreNew(name, zone);
+    const planTarget = planTargetI != null ? String(r[planTargetI] || "").trim() : "";
+    const genre = genreNew(name, zone, planTarget);
     if (!genre) continue;
     const id = slugId(name, used);
     const module_width_cm = width_cm + CLEARANCE_CM * 2;
@@ -493,6 +505,7 @@ async function fetchNew(used) {
       note: noteI != null ? String(r[noteI] || "") : "",
       status: statusI != null ? String(r[statusI] || "") : "",
       zone,
+      planTarget,
     });
   }
   return machines;
