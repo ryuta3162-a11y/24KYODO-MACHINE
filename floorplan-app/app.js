@@ -1544,11 +1544,36 @@ async function saveCloud({ auto = false } = {}) {
         by: authorName(),
         items: snapshot,
         zones: zoneSnap,
+        auto: !!auto,
         note: auto ? "自動保存" : undefined,
+        baseUpdatedAt: state.updatedAt || undefined,
       }),
     });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok || !json.ok) throw new Error(json.error || "save failed");
+
+    // 自動保存が「減る上書き」で拒否された → 多い方を残して修復保存
+    if (auto && res.status === 409 && json.error === "autosave_refused_shrink" && json.data) {
+      const remote = json.data;
+      const rZones = Array.isArray(remote.zones) ? remote.zones : [];
+      const rItems = Array.isArray(remote.items) ? remote.items : [];
+      if (rZones.length > state.zones.length) state.zones = rZones.map((z) => ({ ...z }));
+      if (rItems.length > state.items.length) state.items = rItems.map((it) => ({ ...it }));
+      state.updatedAt = remote.updatedAt || state.updatedAt;
+      state.updatedBy = remote.updatedBy || state.updatedBy;
+      if (Array.isArray(remote.history) && remote.history.length) {
+        state.history = remote.history;
+      }
+      renderHistory();
+      renderZones();
+      renderMachines();
+      showSaveToast("自動保存を保護（消えた線を戻して再保存）");
+      flash("保護修復");
+      el.btnSave?.classList.remove("is-saving");
+      await saveCloud({ auto: false });
+      return;
+    }
+
+    if (!res.ok || !json.ok) throw new Error(json.error || json.message || "save failed");
 
     // 保存結果をそのまま反映（直後の再GETで古いBlobが返って消えるのを防ぐ）
     const savedItems = Array.isArray(json.data?.items) ? json.data.items : snapshot;
