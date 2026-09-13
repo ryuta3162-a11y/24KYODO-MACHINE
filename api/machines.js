@@ -267,9 +267,21 @@ async function fetchExisting(used) {
     // BULLパワーラック1台 + 不足のCYBEXパワーラック1台
     if (photo === "freeweight_1" || (name === "パワーラック" && /bull/i.test(brand))) {
       const racks = [
-        { id: "freeweight_1", label: "パワーラック", brand: "BULL", model: model || "パワーラック", photoKey: "freeweight_1" },
-        { id: "freeweight_1b", label: "パワーラック", brand: "CYBEX", model: "パワーラック", photoKey: "freeweight_1b" },
+        { id: "freeweight_1", label: "パワーラック", brand: "BULL", model: model || "パワーラック", photoKey: "freeweight_1", qty: 1 },
+        { id: "freeweight_1b", label: "パワーラック", brand: "CYBEX", model: "パワーラック", photoKey: "freeweight_1b", qty: 1 },
       ];
+      const extraQty = Math.max(0, qty - racks.length);
+      if (extraQty > 0) {
+        racks.push({
+          id: "freeweight_1_extra",
+          label: "パワーラック",
+          brand: "",
+          model: "追加分",
+          photoKey: "freeweight_1",
+          qty: extraQty,
+          reuseArt: true,
+        });
+      }
       for (const part of racks) {
         if (used.has(part.id)) continue;
         used.add(part.id);
@@ -281,7 +293,7 @@ async function fetchExisting(used) {
           category,
           genre,
           source: "existing",
-          qty: 1,
+          qty: part.qty,
           width_cm,
           length_cm,
           clearance_cm: CLEARANCE_CM,
@@ -291,9 +303,21 @@ async function fetchExisting(used) {
           place_px_h: module_length_cm,
           has_art: true,
           ...filesFor(part.id, part.photoKey),
+          ...(part.reuseArt
+            ? {
+                lp_image: "freeweight_1.jpg",
+                place_file: "freeweight_1_place.png",
+                preview_file: "freeweight_1_preview.png",
+              }
+            : {}),
           photo_key: part.photoKey,
           link,
-          note: part.id === "freeweight_1b" ? "シートに無く不足していたCYBEXパワーラックを追加" : "台数を1台に補正",
+          note:
+            part.id === "freeweight_1b"
+              ? "シートに無く不足していたCYBEXパワーラックを追加"
+              : part.reuseArt
+                ? "追加2台。BULLパワーラック画像を共用"
+                : "台数を1台に補正",
         });
       }
       continue;
