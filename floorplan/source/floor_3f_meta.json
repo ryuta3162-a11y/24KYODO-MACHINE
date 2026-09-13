@@ -1,0 +1,16 @@
+{
+  "labeledCm": {
+    "w": 1960,
+    "h": 1140
+  },
+  "padCm": 80,
+  "planPx": {
+    "w": 2120,
+    "h": 1300
+  },
+  "contentOrigin": {
+    "x": 80,
+    "y": 80
+  },
+  "note": "採寸後に labeledCm / pad を更新して再生成する"
+}

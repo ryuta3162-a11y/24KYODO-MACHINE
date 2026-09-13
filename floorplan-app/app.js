@@ -11,9 +11,13 @@ const ROOMS = {
   },
   "kyodo-3f": {
     title: "経堂 3F",
-    w: 1960,
-    h: 1140,
+    // 図面表記 1960×1140cm + 周囲余白80cm（端が切れないように）
+    // 採寸後に合わせる場合はここを更新
+    w: 2120,
+    h: 1300,
     floor: "../floorplan/floor_3f.jpg",
+    contentOrigin: { x: 80, y: 80 },
+    labeledCm: { w: 1960, h: 1140 },
   },
 };
 const DEFAULT_ROOM = "kyodo-2f";
@@ -23,7 +27,7 @@ const AUTHOR_KEY = "kyodo-floorplan-author";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
 /** 画像差し替え時にブラウザ/CDNキャッシュを切る */
-const ART_VER = "20260913l";
+const ART_VER = "20260913m";
 const CSV_URL = "../floorplan/machines.csv";
 const CATALOG_URL = "../floorplan/machines_catalog.json";
 const MACHINES_API = "/api/machines";
@@ -219,7 +223,7 @@ function applyView() {
 
 function fitView() {
   const rect = el.viewport.getBoundingClientRect();
-  const pad = 24;
+  const pad = state.roomId === "kyodo-3f" ? 48 : 24;
   const sx = (rect.width - pad * 2) / PLAN_W;
   const sy = (rect.height - pad * 2) / PLAN_H;
   const scale = Math.max(0.05, Math.min(sx, sy));
