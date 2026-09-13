@@ -37,6 +37,21 @@ html, body {
   flex-wrap: wrap;
 }
 .brand strong { font-size: 15px; letter-spacing: 0.02em; }
+.floor-select {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 28px 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 14px) 55%, calc(100% - 9px) 55%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
 .author {
   width: 96px;
   border: 1px solid var(--line);
@@ -452,8 +467,8 @@ html, body {
   position: absolute;
   left: 0;
   top: 0;
-  width: 3388px;
-  height: 2058px;
+  width: var(--plan-w, 3388px);
+  height: var(--plan-h, 2058px);
   transform-origin: 0 0;
   background: #fff;
   box-shadow: 0 10px 40px rgba(0,0,0,0.45);
@@ -461,8 +476,8 @@ html, body {
 .floor {
   position: absolute;
   inset: 0;
-  width: 3388px;
-  height: 2058px;
+  width: var(--plan-w, 3388px);
+  height: var(--plan-h, 2058px);
   object-fit: fill;
   image-rendering: auto;
   pointer-events: none;

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>経堂 2F 配置</title>
+  <title>経堂 配置</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet" />
@@ -12,7 +12,11 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <strong>経堂 2F</strong>
+      <strong id="brand-title">経堂 2F</strong>
+      <select id="floor-select" class="floor-select" title="フロア切替" aria-label="フロア切替">
+        <option value="kyodo-2f">2F</option>
+        <option value="kyodo-3f">3F</option>
+      </select>
       <input id="author" class="author" type="text" maxlength="40" placeholder="名前" />
     </div>
     <div class="actions">

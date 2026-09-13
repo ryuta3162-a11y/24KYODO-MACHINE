@@ -2,8 +2,23 @@
  * 施工図マシン配置
  * スケール: 1px = 1cm / 1マス=20cm / 共有ルーム対応
  */
-const PLAN_W = 3388;
-const PLAN_H = 2058;
+const ROOMS = {
+  "kyodo-2f": {
+    title: "経堂 2F",
+    w: 3388,
+    h: 2058,
+    floor: "../floorplan/floor_2f.jpg",
+  },
+  "kyodo-3f": {
+    title: "経堂 3F",
+    w: 1960,
+    h: 1140,
+    floor: "../floorplan/floor_3f.jpg",
+  },
+};
+const DEFAULT_ROOM = "kyodo-2f";
+let PLAN_W = ROOMS[DEFAULT_ROOM].w;
+let PLAN_H = ROOMS[DEFAULT_ROOM].h;
 const AUTHOR_KEY = "kyodo-floorplan-author";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
@@ -15,7 +30,6 @@ const MACHINES_API = "/api/machines";
 const DEFAULT_CLEARANCE_CM = 80;
 const GRID_CM = 20;
 const SNAP_SCREEN_PX = 10;
-const DEFAULT_ROOM = "kyodo-2f";
 const MAX_UNDO = 60;
 
 const ZONE_COLORS = [
@@ -80,6 +94,9 @@ const el = {
   statusCount: document.getElementById("status-count"),
   statusSel: document.getElementById("status-sel"),
   statusLink: document.getElementById("status-link"),
+  floorSelect: document.getElementById("floor-select"),
+  brandTitle: document.getElementById("brand-title"),
+  floor: document.getElementById("floor"),
   zoneLabel: document.getElementById("zone-label"),
   zoneColors: document.getElementById("zone-colors"),
   btnZoneRect: document.getElementById("btn-zone-rect"),
@@ -111,7 +128,32 @@ function roomFromUrl() {
     .toLowerCase()
     .replace(/[^a-z0-9_-]/g, "")
     .slice(0, 48);
-  return id || DEFAULT_ROOM;
+  return ROOMS[id] ? id : DEFAULT_ROOM;
+}
+
+function roomConfig(roomId = state.roomId) {
+  return ROOMS[roomId] || ROOMS[DEFAULT_ROOM];
+}
+
+function applyRoomConfig(roomId) {
+  const conf = roomConfig(roomId);
+  PLAN_W = conf.w;
+  PLAN_H = conf.h;
+  document.documentElement.style.setProperty("--plan-w", `${conf.w}px`);
+  document.documentElement.style.setProperty("--plan-h", `${conf.h}px`);
+  if (el.stage) {
+    el.stage.style.width = `${conf.w}px`;
+    el.stage.style.height = `${conf.h}px`;
+  }
+  if (el.floor) {
+    el.floor.src = `${conf.floor}?v=${ART_VER}`;
+    el.floor.width = conf.w;
+    el.floor.height = conf.h;
+    el.floor.alt = conf.title;
+  }
+  if (el.brandTitle) el.brandTitle.textContent = conf.title;
+  if (el.floorSelect) el.floorSelect.value = roomId;
+  document.title = `${conf.title} 配置`;
 }
 
 function shareUrl() {
@@ -1833,7 +1875,7 @@ async function exportPng() {
 
   const a = document.createElement("a");
   a.href = canvas.toDataURL("image/png");
-  a.download = `kyodo-2f-${Date.now()}.png`;
+  a.download = `${state.roomId}-${Date.now()}.png`;
   a.click();
   flash("PNG");
 }
@@ -2011,6 +2053,7 @@ async function loadCatalog() {
 
 async function init() {
   state.roomId = roomFromUrl();
+  applyRoomConfig(state.roomId);
   if (el.author) {
     el.author.value = localStorage.getItem(AUTHOR_KEY) || "";
     el.author.addEventListener("change", () => {
@@ -2020,6 +2063,16 @@ async function init() {
   const normalized = shareUrl();
   if (normalized !== location.href) {
     history.replaceState(null, "", normalized);
+  }
+
+  if (el.floorSelect) {
+    el.floorSelect.addEventListener("change", () => {
+      const next = el.floorSelect.value;
+      if (!ROOMS[next] || next === state.roomId) return;
+      const u = new URL(location.href);
+      u.searchParams.set("room", next);
+      location.assign(u.toString());
+    });
   }
 
   const loaded = await loadCatalog();

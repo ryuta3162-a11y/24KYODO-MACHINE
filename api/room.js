@@ -1,7 +1,14 @@
 import { put, list } from "@vercel/blob";
 
 const MAX_HISTORY = 40;
-const PLAN = { w: 3388, h: 2058, pxPerCm: 1 };
+const PLANS = {
+  "kyodo-2f": { w: 3388, h: 2058, pxPerCm: 1 },
+  "kyodo-3f": { w: 1960, h: 1140, pxPerCm: 1 },
+};
+
+function planFor(roomId) {
+  return PLANS[roomId] || PLANS["kyodo-2f"];
+}
 
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -43,7 +50,7 @@ async function readRoom(roomId) {
 function emptyRoom(roomId) {
   return {
     roomId,
-    plan: PLAN,
+    plan: planFor(roomId),
     updatedAt: null,
     updatedBy: null,
     items: [],
@@ -132,7 +139,7 @@ export default async function handler(req, res) {
 
       const next = {
         roomId,
-        plan: PLAN,
+        plan: planFor(roomId),
         updatedAt: now,
         updatedBy: by,
         items,
