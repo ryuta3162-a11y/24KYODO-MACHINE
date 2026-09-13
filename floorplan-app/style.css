@@ -77,6 +77,101 @@ html, body {
 .btn.primary:disabled { opacity: 0.65; cursor: wait; }
 .btn.danger { color: #fecaca; border-color: #7f1d1d; }
 
+.zonebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  background: #14181c;
+}
+.zonebar-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+  margin-right: 4px;
+}
+.zone-tool.active {
+  background: var(--red);
+  border-color: var(--red-dark);
+}
+.zone-label-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.zone-label-wrap input {
+  width: 160px;
+  border: 1px solid var(--line);
+  background: #0f1215;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.zone-colors {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.zone-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.zone-swatch.active {
+  border-color: #fff;
+  box-shadow: 0 0 0 1px #000;
+}
+
+.zones-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.zone-shape {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: auto;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px;
+  color: #111;
+  font-weight: 900;
+  font-size: clamp(12px, 1.1vw, 22px);
+  line-height: 1.25;
+  user-select: none;
+  border: 2px solid transparent;
+}
+.zone-shape.rect {
+  border-radius: 4px;
+}
+.zone-shape.circle {
+  border-radius: 50%;
+}
+.zone-shape.selected {
+  outline: 3px solid var(--red);
+  outline-offset: 1px;
+  z-index: 3;
+}
+.zone-shape.draft {
+  pointer-events: none;
+  opacity: 0.85;
+}
+.viewport.zone-draw {
+  cursor: crosshair;
+}
+
 .save-toast {
   position: fixed;
   left: 50%;
@@ -327,7 +422,7 @@ html, body {
   pointer-events: none;
   user-select: none;
 }
-.machines-layer { position: absolute; inset: 0; }
+.machines-layer { position: absolute; inset: 0; z-index: 4; }
 .guides-layer {
   position: absolute;
   inset: 0;

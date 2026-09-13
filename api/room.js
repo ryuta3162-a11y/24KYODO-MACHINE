@@ -47,8 +47,35 @@ function emptyRoom(roomId) {
     updatedAt: null,
     updatedBy: null,
     items: [],
+    zones: [],
     history: [],
   };
+}
+
+function normalizeZones(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((z) => {
+      if (!z || typeof z !== "object") return null;
+      const type = z.type === "circle" ? "circle" : "rect";
+      const uid = String(z.uid || "").trim() || crypto.randomUUID();
+      const label = String(z.label || "").trim().slice(0, 40);
+      const color = String(z.color || "rgba(213,216,220,0.45)").slice(0, 64);
+      if (type === "circle") {
+        const cx = Number(z.cx);
+        const cy = Number(z.cy);
+        const r = Number(z.r);
+        if (![cx, cy, r].every(Number.isFinite) || r < 4) return null;
+        return { uid, type, label, color, cx, cy, r };
+      }
+      const x = Number(z.x);
+      const y = Number(z.y);
+      const w = Number(z.w);
+      const h = Number(z.h);
+      if (![x, y, w, h].every(Number.isFinite) || w < 4 || h < 4) return null;
+      return { uid, type, label, color, x, y, w, h };
+    })
+    .filter(Boolean);
 }
 
 export default async function handler(req, res) {
@@ -62,6 +89,7 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       const data = (await readRoom(roomId)) || emptyRoom(roomId);
+      if (!Array.isArray(data.zones)) data.zones = [];
       return res.status(200).json({ ok: true, data });
     }
 
@@ -69,6 +97,7 @@ export default async function handler(req, res) {
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const items = Array.isArray(body.items) ? body.items : null;
       if (!items) return bad(res, 400, "items required");
+      const zones = normalizeZones(body.zones);
 
       const by = String(body.by || "anonymous").trim().slice(0, 40) || "anonymous";
       const note = String(body.note || "").trim().slice(0, 80);
@@ -82,7 +111,9 @@ export default async function handler(req, res) {
         by,
         note,
         count: items.length,
+        zoneCount: zones.length,
         items,
+        zones,
       };
       const history = [entry, ...(current.history || [])].slice(0, MAX_HISTORY);
 
@@ -92,6 +123,7 @@ export default async function handler(req, res) {
         updatedAt: now,
         updatedBy: by,
         items,
+        zones,
         history,
       };
 
@@ -109,8 +141,16 @@ export default async function handler(req, res) {
           updatedAt: now,
           updatedBy: by,
           items,
+          zones,
           savedEntry: entry,
-          history: history.map(({ id, at, by, note, count }) => ({ id, at, by, note, count })),
+          history: history.map(({ id, at, by, note, count, zoneCount }) => ({
+            id,
+            at,
+            by,
+            note,
+            count,
+            zoneCount,
+          })),
         },
       });
     }

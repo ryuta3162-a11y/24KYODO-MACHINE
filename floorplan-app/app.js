@@ -18,9 +18,19 @@ const SNAP_SCREEN_PX = 10;
 const DEFAULT_ROOM = "kyodo-2f";
 const MAX_UNDO = 60;
 
+const ZONE_COLORS = [
+  { id: "yellow", fill: "rgba(245,215,110,0.45)", chip: "#f5d76e", name: "黄" },
+  { id: "pink", fill: "rgba(245,169,192,0.45)", chip: "#f5a9c0", name: "桃" },
+  { id: "peach", fill: "rgba(245,203,167,0.45)", chip: "#f5cba7", name: "橙" },
+  { id: "green", fill: "rgba(169,223,191,0.45)", chip: "#a9dfbf", name: "緑" },
+  { id: "blue", fill: "rgba(174,214,241,0.45)", chip: "#aed6f1", name: "青" },
+  { id: "gray", fill: "rgba(213,216,220,0.5)", chip: "#d5d8dc", name: "灰" },
+];
+
 const state = {
   catalog: [],
   items: [],
+  zones: [],
   filter: "all",
   source: "existing",
   query: "",
@@ -34,6 +44,7 @@ const state = {
   updatedAt: null,
   updatedBy: null,
   selectedUids: new Set(),
+  selectedZoneUids: new Set(),
   clipboard: [],
   marquee: null,
   dragPrimaryUid: null,
@@ -42,11 +53,15 @@ const state = {
   undoStack: [],
   dragMoved: false,
   lastTap: { uid: null, t: 0 },
+  zoneTool: null, // null | 'rect' | 'circle'
+  zoneColor: ZONE_COLORS[5].fill,
+  zoneDraft: null,
 };
 
 const el = {
   viewport: document.getElementById("viewport"),
   stage: document.getElementById("stage"),
+  zonesLayer: document.getElementById("zones-layer"),
   layer: document.getElementById("machines-layer"),
   guides: document.getElementById("guides-layer"),
   palette: document.getElementById("palette"),
@@ -60,6 +75,11 @@ const el = {
   statusCount: document.getElementById("status-count"),
   statusSel: document.getElementById("status-sel"),
   statusLink: document.getElementById("status-link"),
+  zoneLabel: document.getElementById("zone-label"),
+  zoneColors: document.getElementById("zone-colors"),
+  btnZoneRect: document.getElementById("btn-zone-rect"),
+  btnZoneCircle: document.getElementById("btn-zone-circle"),
+  btnZoneOff: document.getElementById("btn-zone-off"),
   btnFit: document.getElementById("btn-fit"),
   btnRotate: document.getElementById("btn-rotate"),
   btnDup: document.getElementById("btn-dup"),
@@ -209,7 +229,9 @@ function itemEdges(item, machine) {
 function pushUndo() {
   const snap = JSON.stringify({
     items: state.items,
+    zones: state.zones,
     selectedUids: [...state.selectedUids],
+    selectedZoneUids: [...state.selectedZoneUids],
   });
   const last = state.undoStack[state.undoStack.length - 1];
   if (last === snap) return;
@@ -226,7 +248,10 @@ function undoLast() {
   try {
     const data = JSON.parse(raw);
     state.items = Array.isArray(data.items) ? data.items : [];
+    state.zones = Array.isArray(data.zones) ? data.zones : [];
     state.selectedUids = new Set(data.selectedUids || []);
+    state.selectedZoneUids = new Set(data.selectedZoneUids || []);
+    renderZones();
     renderMachines();
     flash("戻した");
   } catch {
@@ -697,6 +722,153 @@ function renderProductLinkChips() {
   el.layer.appendChild(chip);
 }
 
+function zoneLabelText() {
+  return (el.zoneLabel?.value || "").trim().slice(0, 40);
+}
+
+function setZoneTool(tool) {
+  state.zoneTool = tool || null;
+  state.zoneDraft = null;
+  el.btnZoneRect?.classList.toggle("active", state.zoneTool === "rect");
+  el.btnZoneCircle?.classList.toggle("active", state.zoneTool === "circle");
+  el.viewport?.classList.toggle("zone-draw", !!state.zoneTool);
+  renderZones();
+}
+
+function initZoneColors() {
+  if (!el.zoneColors) return;
+  el.zoneColors.innerHTML = ZONE_COLORS.map(
+    (c) =>
+      `<button type="button" class="zone-swatch${c.fill === state.zoneColor ? " active" : ""}" data-fill="${c.fill}" title="${c.name}" style="background:${c.chip}"></button>`
+  ).join("");
+  el.zoneColors.addEventListener("click", (e) => {
+    const btn = e.target.closest(".zone-swatch");
+    if (!btn) return;
+    state.zoneColor = btn.dataset.fill;
+    el.zoneColors.querySelectorAll(".zone-swatch").forEach((b) => b.classList.toggle("active", b === btn));
+    const sels = [...state.selectedZoneUids];
+    if (sels.length) {
+      pushUndo();
+      for (const z of state.zones) {
+        if (state.selectedZoneUids.has(z.uid)) z.color = state.zoneColor;
+      }
+      renderZones();
+    }
+  });
+}
+
+function renderZoneNode(z, { draft = false } = {}) {
+  const node = document.createElement("div");
+  node.className = `zone-shape ${z.type}${draft ? " draft" : ""}${
+    !draft && state.selectedZoneUids.has(z.uid) ? " selected" : ""
+  }`;
+  node.style.background = z.color || state.zoneColor;
+  node.textContent = z.label || "";
+  if (z.type === "circle") {
+    const d = Math.max(8, z.r * 2);
+    node.style.left = `${z.cx - z.r}px`;
+    node.style.top = `${z.cy - z.r}px`;
+    node.style.width = `${d}px`;
+    node.style.height = `${d}px`;
+  } else {
+    node.style.left = `${z.x}px`;
+    node.style.top = `${z.y}px`;
+    node.style.width = `${z.w}px`;
+    node.style.height = `${z.h}px`;
+  }
+  if (!draft) {
+    node.dataset.uid = z.uid;
+    node.addEventListener("pointerdown", onZonePointerDown);
+  }
+  return node;
+}
+
+function renderZones() {
+  if (!el.zonesLayer) return;
+  el.zonesLayer.innerHTML = "";
+  for (const z of state.zones) {
+    el.zonesLayer.appendChild(renderZoneNode(z));
+  }
+  if (state.zoneDraft) {
+    el.zonesLayer.appendChild(renderZoneNode(state.zoneDraft, { draft: true }));
+  }
+}
+
+function onZonePointerDown(e) {
+  if (state.zoneTool) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const uidVal = e.currentTarget.dataset.uid;
+  state.selectedUids = new Set();
+  if (e.shiftKey || e.ctrlKey || e.metaKey) {
+    if (state.selectedZoneUids.has(uidVal)) state.selectedZoneUids.delete(uidVal);
+    else state.selectedZoneUids.add(uidVal);
+  } else {
+    state.selectedZoneUids = new Set([uidVal]);
+  }
+  const z = state.zones.find((x) => x.uid === uidVal);
+  if (z && el.zoneLabel && state.selectedZoneUids.size === 1) {
+    el.zoneLabel.value = z.label || "";
+  }
+  renderZones();
+  renderMachines();
+  updateChrome();
+}
+
+function finalizeZoneDraft() {
+  const d = state.zoneDraft;
+  state.zoneDraft = null;
+  if (!d) return;
+  if (d.type === "circle") {
+    if (!Number.isFinite(d.r) || d.r < 12) {
+      renderZones();
+      return;
+    }
+  } else if (!Number.isFinite(d.w) || !Number.isFinite(d.h) || d.w < 12 || d.h < 12) {
+    renderZones();
+    return;
+  }
+  pushUndo();
+  const zone =
+    d.type === "circle"
+      ? {
+          uid: uid(),
+          type: "circle",
+          label: zoneLabelText(),
+          color: d.color,
+          cx: d.cx,
+          cy: d.cy,
+          r: d.r,
+        }
+      : {
+          uid: uid(),
+          type: "rect",
+          label: zoneLabelText(),
+          color: d.color,
+          x: d.x,
+          y: d.y,
+          w: d.w,
+          h: d.h,
+        };
+  state.zones.push(zone);
+  state.selectedZoneUids = new Set([zone.uid]);
+  state.selectedUids = new Set();
+  renderZones();
+  renderMachines();
+  updateChrome();
+  flash(zone.label ? `ゾーン: ${zone.label}` : "ゾーン追加");
+}
+
+function applyZoneLabelFromInput() {
+  const label = zoneLabelText();
+  if (!state.selectedZoneUids.size) return;
+  pushUndo();
+  for (const z of state.zones) {
+    if (state.selectedZoneUids.has(z.uid)) z.label = label;
+  }
+  renderZones();
+}
+
 function renderMarquee() {
   let box = el.stage.querySelector(".marquee");
   if (!state.marquee) {
@@ -735,8 +907,10 @@ function selectedItems() {
 
 function updateChrome() {
   const n = state.items.filter((i) => !i.hidden).length;
-  el.statusCount.textContent = `${n}`;
+  const zc = state.zones.length;
+  el.statusCount.textContent = zc ? `${n}台 / ゾーン${zc}` : `${n}`;
   const sels = selectedItems();
+  const zsels = state.zones.filter((z) => state.selectedZoneUids.has(z.uid));
   if (sels.length === 1) {
     const m = findMachine(sels[0].id);
     el.statusSel.textContent = m ? m.name : "";
@@ -754,6 +928,18 @@ function updateChrome() {
     }
   } else if (sels.length > 1) {
     el.statusSel.textContent = `${sels.length}台`;
+    if (el.statusLink) {
+      el.statusLink.hidden = true;
+      el.statusLink.removeAttribute("href");
+    }
+  } else if (zsels.length === 1) {
+    el.statusSel.textContent = zsels[0].label ? `ゾーン: ${zsels[0].label}` : "ゾーン選択中";
+    if (el.statusLink) {
+      el.statusLink.hidden = true;
+      el.statusLink.removeAttribute("href");
+    }
+  } else if (zsels.length > 1) {
+    el.statusSel.textContent = `ゾーン ${zsels.length}`;
     if (el.statusLink) {
       el.statusLink.hidden = true;
       el.statusLink.removeAttribute("href");
@@ -776,9 +962,10 @@ function updateChrome() {
     }
   }
   const has = sels.length > 0;
+  const hasZone = zsels.length > 0;
   el.btnRotate.disabled = !has;
   el.btnDup.disabled = !has;
-  el.btnDel.disabled = !has;
+  el.btnDel.disabled = !has && !hasZone;
   if (el.statusRoom) el.statusRoom.textContent = state.roomId;
   renderProductLinkChips();
 }
@@ -812,11 +999,16 @@ function applyRoomData(data, { keepSelection = false } = {}) {
         id: it.id === "resistance_10_11" ? "resistance_10" : it.id,
       }))
     : [];
+  state.zones = Array.isArray(data.zones) ? data.zones.map((z) => ({ ...z })) : [];
   state.history = Array.isArray(data.history) ? data.history : [];
   state.updatedAt = data.updatedAt || null;
   state.updatedBy = data.updatedBy || null;
-  if (!keepSelection) state.selectedUids = new Set();
+  if (!keepSelection) {
+    state.selectedUids = new Set();
+    state.selectedZoneUids = new Set();
+  }
   renderHistory();
+  renderZones();
   renderMachines();
 }
 
@@ -829,6 +1021,7 @@ async function loadCloud(showFlash = true) {
 
 async function saveCloud() {
   const snapshot = state.items.map((it) => ({ ...it }));
+  const zoneSnap = state.zones.map((z) => ({ ...z }));
   flash("保存中…");
   el.btnSave?.classList.add("is-saving");
   try {
@@ -838,6 +1031,7 @@ async function saveCloud() {
       body: JSON.stringify({
         by: authorName(),
         items: snapshot,
+        zones: zoneSnap,
       }),
     });
     const json = await res.json().catch(() => ({}));
@@ -845,7 +1039,9 @@ async function saveCloud() {
 
     // 保存結果をそのまま反映（直後の再GETで空になるレースを防ぐ）
     const savedItems = Array.isArray(json.data?.items) ? json.data.items : snapshot;
+    const savedZones = Array.isArray(json.data?.zones) ? json.data.zones : zoneSnap;
     state.items = savedItems.map((it) => ({ ...it }));
+    state.zones = savedZones.map((z) => ({ ...z }));
     state.updatedAt = json.data?.updatedAt || new Date().toISOString();
     state.updatedBy = json.data?.updatedBy || authorName();
 
@@ -856,6 +1052,7 @@ async function saveCloud() {
         {
           ...savedEntry,
           items: Array.isArray(savedEntry.items) ? savedEntry.items : snapshot,
+          zones: Array.isArray(savedEntry.zones) ? savedEntry.zones : zoneSnap,
         },
         ...rest,
       ].slice(0, 40);
@@ -869,23 +1066,34 @@ async function saveCloud() {
           if (remote && !(remote.length === 0 && snapshot.length > 0)) {
             state.items = remote.map((it) => ({ ...it }));
           }
+          if (Array.isArray(data.zones)) {
+            state.zones = data.zones.map((z) => ({ ...z }));
+          }
           if (Array.isArray(data.history) && data.history.length) {
             // サーバ履歴に items がある場合はそれを優先
             state.history = data.history.map((h) => {
-              if (Array.isArray(h.items)) return h;
+              if (Array.isArray(h.items) || Array.isArray(h.zones)) return h;
               const local = (state.history || []).find((x) => x.id === h.id);
-              return local?.items ? { ...h, items: local.items } : h;
+              return local
+                ? {
+                    ...h,
+                    items: local.items,
+                    zones: local.zones,
+                  }
+                : h;
             });
           }
           state.updatedAt = data.updatedAt || state.updatedAt;
           state.updatedBy = data.updatedBy || state.updatedBy;
           renderHistory();
+          renderZones();
           renderMachines();
         })
         .catch(() => {});
     }, 800);
 
     renderHistory();
+    renderZones();
     renderMachines();
     showSaveToast("保存されました");
     flash("保存済み");
@@ -932,18 +1140,24 @@ function restoreHistory(entryId) {
     return;
   }
   state.items = entry.items.map((it) => ({ ...it }));
+  state.zones = Array.isArray(entry.zones) ? entry.zones.map((z) => ({ ...z })) : [];
   state.selectedUids = new Set();
+  state.selectedZoneUids = new Set();
+  renderZones();
   renderMachines();
   flash("履歴表示");
   el.history.value = "";
 }
 
 function clearAll() {
-  if (!state.items.length) return;
+  if (!state.items.length && !state.zones.length) return;
   if (!confirm("全削除？")) return;
   pushUndo();
   state.items = [];
+  state.zones = [];
   state.selectedUids = new Set();
+  state.selectedZoneUids = new Set();
+  renderZones();
   renderMachines();
 }
 
@@ -1013,6 +1227,10 @@ function onMachinePointerDown(e) {
     selectionChanged = true;
   } else if (!state.selectedUids.has(uidVal)) {
     state.selectedUids = new Set([uidVal]);
+    state.selectedZoneUids = new Set();
+    selectionChanged = true;
+  } else if (state.selectedZoneUids.size) {
+    state.selectedZoneUids = new Set();
     selectionChanged = true;
   }
   // 選択が変わったときだけ再描画（毎回作り直すと dblclick が死ぬ）
@@ -1034,9 +1252,39 @@ function onMachinePointerDown(e) {
 
 function onViewportPointerDown(e) {
   if (e.target.closest(".machine")) return;
+  if (e.target.closest(".zone-shape") && !state.zoneTool) return;
+
+  // ゾーン描画モード: ドラッグで四角／丸
+  if (state.zoneTool && e.button === 0 && !state.spaceDown) {
+    e.preventDefault();
+    const plan = clientToPlan(e.clientX, e.clientY);
+    state.selectedUids = new Set();
+    state.selectedZoneUids = new Set();
+    state.zoneDraft = {
+      type: state.zoneTool,
+      color: state.zoneColor,
+      label: zoneLabelText(),
+      x0: plan.x,
+      y0: plan.y,
+      x: plan.x,
+      y: plan.y,
+      w: 0,
+      h: 0,
+      cx: plan.x,
+      cy: plan.y,
+      r: 0,
+    };
+    renderZones();
+    renderMachines();
+    el.viewport.setPointerCapture(e.pointerId);
+    return;
+  }
+
   if (e.button === 1 || e.button === 2 || state.spaceDown || (e.button === 0 && !(e.ctrlKey || e.metaKey))) {
     // 通常の空き地 = パン＋選択解除
     state.selectedUids = new Set();
+    state.selectedZoneUids = new Set();
+    renderZones();
     renderMachines();
     state.panning = true;
     state.panStart = { x: e.clientX, y: e.clientY, ox: state.view.ox, oy: state.view.oy };
@@ -1047,14 +1295,34 @@ function onViewportPointerDown(e) {
   if (e.button !== 0) return;
   // Ctrl/⌘ + 空き地ドラッグ = 枠選択
   const plan = clientToPlan(e.clientX, e.clientY);
-  if (!(e.shiftKey)) state.selectedUids = new Set();
+  if (!(e.shiftKey)) {
+    state.selectedUids = new Set();
+    state.selectedZoneUids = new Set();
+  }
   state.marquee = { x0: plan.x, y0: plan.y, x1: plan.x, y1: plan.y };
   el.viewport.classList.add("selecting");
+  renderZones();
   renderMachines();
   el.viewport.setPointerCapture(e.pointerId);
 }
 
 function onPointerMove(e) {
+  if (state.zoneDraft) {
+    const plan = clientToPlan(e.clientX, e.clientY);
+    const d = state.zoneDraft;
+    if (d.type === "circle") {
+      d.cx = d.x0;
+      d.cy = d.y0;
+      d.r = Math.hypot(plan.x - d.x0, plan.y - d.y0);
+    } else {
+      d.x = Math.min(d.x0, plan.x);
+      d.y = Math.min(d.y0, plan.y);
+      d.w = Math.abs(plan.x - d.x0);
+      d.h = Math.abs(plan.y - d.y0);
+    }
+    renderZones();
+    return;
+  }
   if (state.dragPrimaryUid && state.dragOrigins) {
     const primary = state.items.find((i) => i.uid === state.dragPrimaryUid);
     const pm = primary && findMachine(primary.id);
@@ -1105,6 +1373,9 @@ function onPointerMove(e) {
 }
 
 function onPointerUp() {
+  if (state.zoneDraft) {
+    finalizeZoneDraft();
+  }
   if (state.marquee) {
     const { x0, y0, x1, y1 } = state.marquee;
     const moved = Math.hypot(x1 - x0, y1 - y0) > 4;
@@ -1203,6 +1474,37 @@ async function exportPng() {
   ctx.fillRect(0, 0, PLAN_W, PLAN_H);
   ctx.drawImage(floor, 0, 0, PLAN_W, PLAN_H);
 
+  for (const z of state.zones) {
+    ctx.save();
+    ctx.fillStyle = z.color || "rgba(213,216,220,0.45)";
+    ctx.strokeStyle = "rgba(17,17,17,0.35)";
+    ctx.lineWidth = 2;
+    if (z.type === "circle") {
+      ctx.beginPath();
+      ctx.arc(z.cx, z.cy, z.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      if (z.label) {
+        ctx.fillStyle = "#111111";
+        ctx.font = "bold 28px 'Noto Sans JP', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(z.label, z.cx, z.cy);
+      }
+    } else {
+      ctx.fillRect(z.x, z.y, z.w, z.h);
+      ctx.strokeRect(z.x, z.y, z.w, z.h);
+      if (z.label) {
+        ctx.fillStyle = "#111111";
+        ctx.font = "bold 28px 'Noto Sans JP', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(z.label, z.x + z.w / 2, z.y + z.h / 2);
+      }
+    }
+    ctx.restore();
+  }
+
   for (const item of state.items) {
     if (item.hidden) continue;
     const m = findMachine(item.id);
@@ -1292,10 +1594,17 @@ function dupSelected() {
 }
 
 function delSelected() {
-  if (!state.selectedUids.size) return;
+  if (!state.selectedUids.size && !state.selectedZoneUids.size) return;
   pushUndo();
-  state.items = state.items.filter((i) => !state.selectedUids.has(i.uid));
-  state.selectedUids = new Set();
+  if (state.selectedUids.size) {
+    state.items = state.items.filter((i) => !state.selectedUids.has(i.uid));
+    state.selectedUids = new Set();
+  }
+  if (state.selectedZoneUids.size) {
+    state.zones = state.zones.filter((z) => !state.selectedZoneUids.has(z.uid));
+    state.selectedZoneUids = new Set();
+  }
+  renderZones();
   renderMachines();
 }
 
@@ -1474,7 +1783,7 @@ async function init() {
       e.preventDefault();
     }
     if (typing) return;
-    if ((e.key === "Delete" || e.key === "Backspace") && state.selectedUids.size) {
+    if ((e.key === "Delete" || e.key === "Backspace") && (state.selectedUids.size || state.selectedZoneUids.size)) {
       e.preventDefault();
       delSelected();
     }
@@ -1516,6 +1825,17 @@ async function init() {
   el.btnClear.addEventListener("click", clearAll);
   el.btnExport.addEventListener("click", () => exportPng().catch(console.error));
   el.history.addEventListener("change", () => restoreHistory(el.history.value));
+  el.btnZoneRect?.addEventListener("click", () => setZoneTool(state.zoneTool === "rect" ? null : "rect"));
+  el.btnZoneCircle?.addEventListener("click", () => setZoneTool(state.zoneTool === "circle" ? null : "circle"));
+  el.btnZoneOff?.addEventListener("click", () => setZoneTool(null));
+  el.zoneLabel?.addEventListener("change", applyZoneLabelFromInput);
+  el.zoneLabel?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      applyZoneLabelFromInput();
+    }
+  });
+  initZoneColors();
 
   await loadCloud(true).catch((err) => {
     console.error(err);

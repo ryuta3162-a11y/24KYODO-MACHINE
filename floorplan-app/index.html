@@ -31,6 +31,18 @@
     </div>
   </header>
 
+  <div class="zonebar" id="zonebar">
+    <span class="zonebar-title">ゾーン</span>
+    <button type="button" class="btn zone-tool" id="btn-zone-rect" data-tool="rect">□ 四角</button>
+    <button type="button" class="btn zone-tool" id="btn-zone-circle" data-tool="circle">○ 丸</button>
+    <button type="button" class="btn" id="btn-zone-off">選択</button>
+    <label class="zone-label-wrap">
+      名称
+      <input id="zone-label" type="text" maxlength="40" placeholder="例: レジスタンス" />
+    </label>
+    <div class="zone-colors" id="zone-colors" role="listbox" aria-label="ゾーン色"></div>
+  </div>
+
   <div class="layout">
     <aside class="sidebar">
       <label class="search">
@@ -62,6 +74,7 @@
           width="3388"
           height="2058"
         />
+        <div id="zones-layer" class="zones-layer"></div>
         <div id="machines-layer" class="machines-layer"></div>
         <div id="guides-layer" class="guides-layer" aria-hidden="true"></div>
       </div>
