@@ -458,7 +458,8 @@ async function fetchNew(used) {
   const dI = idx["奥行_mm"] ?? idx["奥行(mm)"];
   const hI = idx["高さ_mm"] ?? idx["高さ(mm)"];
   const qtyI = idx["台数"];
-  const zoneI = idx["ゾーン候補"];
+  // シート整理後の「カテゴリ」と旧見出しの両方を読めるようにする。
+  const zoneI = idx["カテゴリ"] ?? idx["ゾーン候補"];
   const linkI = idx["商品リンク"];
   const noteI = idx["備考"];
   const statusI = idx["状態"];
