@@ -87,7 +87,11 @@ html, body {
 }
 .btn:hover:not(:disabled) { border-color: #4b5563; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn.primary { background: var(--red); border-color: var(--red-dark); }
+.btn.is-locked {
+  border-color: #c53030;
+  color: #feb2b2;
+  background: rgba(229, 62, 62, 0.18);
+}
 .btn.primary.is-saving,
 .btn.primary:disabled { opacity: 0.65; cursor: wait; }
 .btn.primary.is-dirty:not(.is-saving) {

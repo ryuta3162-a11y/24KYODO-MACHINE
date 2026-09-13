@@ -132,15 +132,9 @@ const el = {
   btnZoneVertical: document.getElementById("btn-zone-vertical"),
   btnZoneFlipX: document.getElementById("btn-zone-flip-x"),
   btnZoneFlipY: document.getElementById("btn-zone-flip-y"),
-  btnFit: document.getElementById("btn-fit"),
   btnRotate: document.getElementById("btn-rotate"),
-  btnDup: document.getElementById("btn-dup"),
-  btnDel: document.getElementById("btn-del"),
+  btnLock: document.getElementById("btn-lock"),
   btnSave: document.getElementById("btn-save"),
-  btnShare: document.getElementById("btn-share"),
-  btnReload: document.getElementById("btn-reload"),
-  btnClear: document.getElementById("btn-clear"),
-  btnExport: document.getElementById("btn-export"),
 };
 
 function uid() {
@@ -1645,10 +1639,17 @@ function updateChrome() {
   }
   const has = sels.length > 0;
   const hasUnlocked = sels.some((it) => !it.locked);
+  const allLocked = has && sels.every((it) => it.locked);
   const hasZone = zsels.length > 0;
-  el.btnRotate.disabled = !hasUnlocked;
-  el.btnDup.disabled = !has;
-  el.btnDel.disabled = !has && !hasZone;
+  if (el.btnRotate) el.btnRotate.disabled = !hasUnlocked;
+  if (el.btnLock) {
+    el.btnLock.disabled = !has;
+    el.btnLock.textContent = allLocked ? "ロック解除" : "ロック";
+    el.btnLock.title = allLocked
+      ? "選択中の位置固定を解除"
+      : "選択中の位置を固定（動かない）";
+    el.btnLock.classList.toggle("is-locked", allLocked);
+  }
   if (el.btnZoneVertical) el.btnZoneVertical.disabled = !hasZone;
   if (el.btnZoneFlipX) el.btnZoneFlipX.disabled = !hasZone;
   if (el.btnZoneFlipY) el.btnZoneFlipY.disabled = !hasZone;
@@ -1657,17 +1658,22 @@ function updateChrome() {
 }
 
 function renderHistory() {
+  // 履歴UIは非表示。状態だけ保持（手動保存のスナップショット復元用に内部保持）
   if (!el.history) return;
-  const opts = ['<option value="">履歴</option>'];
-  for (const h of state.history || []) {
-    const t = new Date(h.at);
-    const stamp = Number.isNaN(t.getTime())
-      ? h.at
-      : t.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
-    const label = `${stamp} ${h.by || "?"} (${h.count ?? h.items?.length ?? 0})`;
-    opts.push(`<option value="${h.id}">${escapeHtml(label)}</option>`);
+  el.history.innerHTML = '<option value="">履歴</option>';
+}
+
+function toggleLockSelected() {
+  const sels = selectedItems();
+  if (!sels.length) {
+    flash("選択なし");
+    return;
   }
-  el.history.innerHTML = opts.join("");
+  const unlock = sels.every((it) => it.locked);
+  setItemsLockedSafe(
+    sels.map((it) => it.uid),
+    !unlock
+  );
 }
 
 async function fetchRoom() {
@@ -2918,16 +2924,9 @@ async function init() {
     if (document.visibilityState === "visible") touchTabLock();
   }, 3000);
 
-  el.btnFit.addEventListener("click", fitView);
-  el.btnRotate.addEventListener("click", rotateSelected);
-  el.btnDup.addEventListener("click", dupSelected);
-  el.btnDel.addEventListener("click", delSelected);
-  el.btnSave.addEventListener("click", saveLayout);
-  el.btnShare.addEventListener("click", () => copyShare().catch(console.error));
-  el.btnReload.addEventListener("click", loadLayout);
-  el.btnClear.addEventListener("click", clearAll);
-  el.btnExport.addEventListener("click", () => exportPng().catch(console.error));
-  el.history.addEventListener("change", () => restoreHistory(el.history.value));
+  el.btnRotate?.addEventListener("click", rotateSelected);
+  el.btnLock?.addEventListener("click", toggleLockSelected);
+  el.btnSave?.addEventListener("click", saveLayout);
   el.btnZoneRect?.addEventListener("click", () => setZoneTool(state.zoneTool === "rect" ? null : "rect"));
   el.btnZoneOff?.addEventListener("click", () => setZoneTool(null));
   el.btnZoneVertical?.addEventListener("click", toggleSelectedZonesVertical);
