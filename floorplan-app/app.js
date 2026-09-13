@@ -89,6 +89,7 @@ const state = {
   dirty: false,
   autosaveTimer: null,
   autosaveInFlight: false,
+  lastSavedFp: "",
 };
 
 const el = {
@@ -369,10 +370,17 @@ function pushUndo() {
   if (last === snap) return;
   state.undoStack.push(snap);
   if (state.undoStack.length > MAX_UNDO) state.undoStack.shift();
-  markDirty();
+}
+
+function contentFingerprint() {
+  return JSON.stringify({ items: state.items, zones: state.zones });
 }
 
 function markDirty() {
+  if (contentFingerprint() === state.lastSavedFp) {
+    state.dirty = false;
+    return;
+  }
   state.dirty = true;
   scheduleAutosave();
 }
@@ -401,7 +409,10 @@ function scheduleAutosave() {
 }
 
 function runAutosave() {
-  if (!state.dirty) return;
+  if (contentFingerprint() === state.lastSavedFp) {
+    state.dirty = false;
+    return;
+  }
   if (isBusyForAutosave()) {
     scheduleAutosave();
     return;
@@ -417,7 +428,7 @@ function runAutosave() {
     })
     .finally(() => {
       state.autosaveInFlight = false;
-      if (state.dirty) scheduleAutosave();
+      if (state.dirty || contentFingerprint() !== state.lastSavedFp) scheduleAutosave();
     });
 }
 
@@ -461,6 +472,7 @@ function toggleTrim(uidVal) {
   clampItem(item, m);
   state.selectedUids = new Set([uidVal]);
   renderMachines();
+  markDirty();
   flash(item.trimmed ? "切取" : "区画戻し");
 }
 
@@ -1001,6 +1013,7 @@ function initZoneColors() {
         if (state.selectedZoneUids.has(z.uid) && z.type !== "text") z.color = state.zoneColor;
       }
       renderZones();
+      markDirty();
     }
   });
 }
@@ -1258,6 +1271,7 @@ function finalizeZoneDraft() {
   renderZones();
   renderMachines();
   updateChrome();
+  markDirty();
   flash(zone.label ? `ゾーン追加: ${zone.label}` : "ゾーン追加（ドラッグで調整）");
 }
 
@@ -1270,6 +1284,7 @@ function applyZoneLabelFromInput() {
     z.label = label;
   }
   renderZones();
+  markDirty();
 }
 
 function applyFreeTextFromInput() {
@@ -1284,6 +1299,7 @@ function applyFreeTextFromInput() {
   for (const z of texts) z.label = label;
   renderZones();
   updateChrome();
+  markDirty();
 }
 
 function placeFreeTextAt(plan) {
@@ -1315,6 +1331,7 @@ function placeFreeTextAt(plan) {
   renderZones();
   renderMachines();
   updateChrome();
+  markDirty();
   flash(`文字配置: ${label}`);
 }
 
@@ -1326,6 +1343,7 @@ function toggleSelectedZonesVertical() {
   }
   renderZones();
   updateChrome();
+  markDirty();
 }
 
 function flipSelectedZones(axis) {
@@ -1338,6 +1356,7 @@ function flipSelectedZones(axis) {
   }
   renderZones();
   updateChrome();
+  markDirty();
 }
 
 function renderMarquee() {
@@ -1494,6 +1513,8 @@ function applyRoomData(data, { keepSelection = false } = {}) {
   renderHistory();
   renderZones();
   renderMachines();
+  state.lastSavedFp = contentFingerprint();
+  state.dirty = false;
 }
 
 async function loadCloud(showFlash = true) {
@@ -1537,6 +1558,7 @@ async function saveCloud({ auto = false } = {}) {
     state.updatedAt = json.data?.updatedAt || new Date().toISOString();
     state.updatedBy = json.data?.updatedBy || authorName();
     state.dirty = false;
+    state.lastSavedFp = contentFingerprint();
     if (!auto) clearZoneEdit();
 
     const savedEntry = json.data?.savedEntry;
@@ -1552,8 +1574,7 @@ async function saveCloud({ auto = false } = {}) {
       ].slice(0, 40);
     }
 
-    // 履歴メタだけ遅延同期。items/zones は保存レスポンスを信頼（読取遅延で欠落するのを防ぐ）
-    const savedAt = state.updatedAt;
+    // 履歴メタだけ遅延同期。items/zones は保存レスポンスを信頼し、遅延GETで上書きしない
     const roomAtSave = state.roomId;
     setTimeout(() => {
       if (state.roomId !== roomAtSave) return;
@@ -1573,22 +1594,7 @@ async function saveCloud({ auto = false } = {}) {
                 : h;
             });
           }
-          // 新しい保存より古い応答なら配置を上書きしない
-          const remoteAt = data.updatedAt ? Date.parse(data.updatedAt) : 0;
-          const localAt = savedAt ? Date.parse(savedAt) : 0;
-          if (Number.isFinite(remoteAt) && Number.isFinite(localAt) && remoteAt >= localAt) {
-            if (Array.isArray(data.items) && data.items.length >= snapshot.length) {
-              state.items = data.items.map((it) => ({ ...it })).filter(inPlanBounds);
-            }
-            if (Array.isArray(data.zones) && data.zones.length >= zoneSnap.length) {
-              state.zones = data.zones.map((z) => ({ ...z }));
-            }
-            state.updatedAt = data.updatedAt || state.updatedAt;
-            state.updatedBy = data.updatedBy || state.updatedBy;
-          }
           renderHistory();
-          renderZones();
-          renderMachines();
         })
         .catch(() => {});
     }, 1200);
@@ -1648,6 +1654,7 @@ function restoreHistory(entryId) {
   state.selectedZoneUids = new Set();
   renderZones();
   renderMachines();
+  markDirty();
   flash("履歴表示");
   el.history.value = "";
 }
@@ -1663,6 +1670,7 @@ function clearAll() {
   clearZoneEdit();
   renderZones();
   renderMachines();
+  markDirty();
 }
 
 function placeMachine(id, x, y, rot = 0) {
@@ -1690,6 +1698,7 @@ function placeMachine(id, x, y, rot = 0) {
   state.items.push(item);
   state.selectedUids = new Set([item.uid]);
   renderMachines();
+  markDirty();
   return item;
 }
 
@@ -1937,6 +1946,8 @@ function onPointerUp() {
   }
   const wasResizing = !!state.zoneResize;
   const wasMoving = !!state.zoneMove?.undid;
+  const labelMoved = !!state.zoneLabelDrag?.undid;
+  const dragMoved = !!state.dragMoved;
   if (state.zoneResize) {
     state.zoneResize = null;
     updateChrome();
@@ -2000,6 +2011,7 @@ function onPointerUp() {
   state.panStart = null;
   el.viewport.classList.remove("panning");
   clearGuides();
+  if (wasResizing || wasMoving || labelMoved || dragMoved) markDirty();
 }
 
 function onWheel(e) {
@@ -2187,6 +2199,7 @@ function rotateSelected() {
     clampItem(item, m);
   }
   renderMachines();
+  markDirty();
 }
 
 function dupSelected() {
@@ -2202,6 +2215,7 @@ function delSelectedZones() {
   renderZones();
   renderMachines();
   updateChrome();
+  markDirty();
   flash("ゾーン削除");
 }
 
@@ -2225,6 +2239,7 @@ function delSelected() {
   renderMachines();
   renderPalette();
   updateChrome();
+  markDirty();
 }
 
 function copySelected() {
@@ -2290,6 +2305,7 @@ function pasteClipboard(source = state.clipboard, dx = 40, dy = 40) {
     return { id: it.id, x: it.x, y: it.y, rot: it.rot, hidden: !!it.hidden };
   });
   renderMachines();
+  markDirty();
   flash(skipped ? `貼付 ${created.length} 残不足${skipped}` : `貼付 ${created.length}`);
 }
 
