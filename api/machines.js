@@ -16,8 +16,8 @@ const CAT_MAP = {
 const GENRE = {
   cardio: "有酸素",
   hyrox: "HYROX",
-  stack: "スタック",
-  plate: "プレート",
+  stack: "レジスタンス",
+  plate: "PL",
   freeweight: "FW",
   pilates: "ピラティス",
 };
@@ -129,10 +129,20 @@ function slugId(name, used) {
   return id;
 }
 
-function genreExisting(category) {
+function genreExisting(category, name = "", model = "") {
   if (category === "cardio") return "cardio";
-  if (category === "freeweight") return "freeweight";
-  // Cybex等セレクタ＝スタック
+  if (category === "freeweight") {
+    const s = `${name} ${model}`.toLowerCase();
+    // プレートを直接装着するマシンはPL。
+    if (/plate.?loaded|プレート.?ロード|インクラインチェストプレス|プリチャーカール|45.?レッグプレス/.test(s)) {
+      return "plate";
+    }
+    // ケーブル機はウェイトスタック式のためレジスタンス。
+    if (/ケーブルマシン|ケーブルステーション|cable|dual adjustable pulley|bravo/.test(s)) return "stack";
+    // ラック、ダンベル、バーベル、床、ベンチ台、スミス等。
+    return "freeweight";
+  }
+  // Cybex等のウェイトスタック式。
   return "stack";
 }
 
@@ -208,7 +218,7 @@ async function fetchExisting(used) {
     const category = CAT_MAP[(r[idx["カテゴリ"]] || "").trim()] || "resistance";
     const brand = (r[idx["ブランド"]] || "").trim();
     const model = (r[idx["シリーズ/型番"]] || "").trim();
-    const genre = genreExisting(category);
+    const genre = genreExisting(category, name, model);
     const linkCol = idx["商品リンク"] ?? idx["リンク"] ?? idx["URL"];
     const link = linkCol != null ? String(r[linkCol] || "").trim() : "";
     const module_width_cm = width_cm + CLEARANCE_CM * 2;

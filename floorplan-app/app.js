@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 施工図マシン配置
  * スケール: 1px = 1cm / 1マス=20cm / 共有ルーム対応
  */
@@ -26,7 +26,7 @@ const AUTHOR_KEY = "kyodo-floorplan-author";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
 /** 画像差し替え時にブラウザ/CDNキャッシュを切る */
-const ART_VER = "20260914h";
+const ART_VER = "20260914cat";
 const CSV_URL = "../floorplan/machines.csv";
 const CATALOG_URL = "../floorplan/machines_catalog.json";
 const MACHINES_API = "/api/machines";
@@ -742,8 +742,8 @@ function snapPosition(item, machine) {
 const GENRE_LABEL = {
   cardio: "有酸素",
   hyrox: "HYROX",
-  stack: "スタック",
-  plate: "プレート",
+  stack: "レジスタンス",
+  plate: "PL",
   freeweight: "FW",
   pilates: "ピラティス",
 };

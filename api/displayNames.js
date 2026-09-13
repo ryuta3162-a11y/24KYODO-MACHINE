@@ -91,8 +91,20 @@ export function displayExisting(name, brand) {
   return `${b}　${n}`;
 }
 
-/** ダンベルエリア4パターン（メーカー名はタイトルに出さない） */
+/** ダンベルエリア（メーカー名はタイトルに出さない） */
 export const DUMBBELL_AREA_MACHINES = [
+  {
+    id: "dumbbell_area_10_60",
+    name: "ダンベルエリア 10–60kg",
+    brand: "",
+    model: "横一列・2.5kg刻み想定",
+    width_cm: 720,
+    length_cm: 70,
+    qty: 1,
+    note: "10〜60kg・21ペア。一般的な10ペアラック約240cmを3台横一列にした概算",
+    art_id: "dumbbell_area_10_60",
+    lp_image: "dumbbell_area_10_60.png",
+  },
   {
     id: "dumbbell_area_12_30",
     name: "ダンベルエリア 12–30kg",
