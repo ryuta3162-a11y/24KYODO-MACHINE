@@ -1,3 +1,13 @@
+/** 既存：シートのブランドより優先する補正 */
+export const EXISTING_BRAND_OVERRIDE = {
+  プリチャーカール: "Technogym",
+};
+
+/** 既存：メーカー名を付けない／別名にする */
+export const EXISTING_NAME_OVERRIDE = {
+  ダンベルラック: null, // 一覧から除外（ダンベルエリアに分割）
+};
+
 /** メーカー名＋日本語名の表示用マップ（新マシンの英語名称 → 表示名） */
 export const NEW_DISPLAY_NAMES = {
   "HD Athletic NX Half Half Combo Rack": "Hammer Strength　ハーフハーフコンボラック",
@@ -73,13 +83,57 @@ export function formatBrand(brand) {
 
 export function displayExisting(name, brand) {
   const n = String(name || "").trim();
-  const b = formatBrand(brand);
   if (!n) return "";
+  const brandForced = EXISTING_BRAND_OVERRIDE[n];
+  const b = formatBrand(brandForced != null ? brandForced : brand);
   if (!b) return n;
-  // 名称に既にブランドが入っている場合は重複しない
   if (n.toLowerCase().includes(b.toLowerCase())) return n;
   return `${b}　${n}`;
 }
+
+/** ダンベルエリア4パターン（メーカー名はタイトルに出さない） */
+export const DUMBBELL_AREA_MACHINES = [
+  {
+    id: "dumbbell_area_12_30",
+    name: "ダンベルエリア 12–30kg",
+    brand: "",
+    model: "IVANKO",
+    width_cm: 240,
+    length_cm: 70,
+    qty: 1,
+    note: "IVANKO",
+  },
+  {
+    id: "dumbbell_area_32_40",
+    name: "ダンベルエリア 32–40kg",
+    brand: "",
+    model: "ZIVA",
+    width_cm: 220,
+    length_cm: 70,
+    qty: 1,
+    note: "ZIVA",
+  },
+  {
+    id: "dumbbell_area_1_10_a",
+    name: "ダンベルエリア 1–10kg",
+    brand: "",
+    model: "1–10kg",
+    width_cm: 100,
+    length_cm: 100,
+    qty: 1,
+    note: "2セットのうち1",
+  },
+  {
+    id: "dumbbell_area_1_10_b",
+    name: "ダンベルエリア 1–10kg（2セット目）",
+    brand: "",
+    model: "1–10kg",
+    width_cm: 100,
+    length_cm: 100,
+    qty: 1,
+    note: "2セットのうち2",
+  },
+];
 
 export function displayNew(name) {
   const n = String(name || "").trim();

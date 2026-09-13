@@ -1,4 +1,4 @@
-import { displayExisting, displayNew } from "./displayNames.js";
+import { displayExisting, displayNew, DUMBBELL_AREA_MACHINES, EXISTING_NAME_OVERRIDE } from "./displayNames.js";
 
 const SHEET_ID = "1YR4UNjOHT-AManewnSOEPxuR01kBVwXfgoCAjDsPeOw";
 const EXISTING_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("既存マシン")}`;
@@ -189,7 +189,10 @@ async function fetchExisting(used) {
   for (const r of rows.slice(1)) {
     const name = (r[idx["名称"]] || "").trim();
     if (!name) continue;
+    // ダンベルラックはダンベルエリア4パターンに置き換えるため除外
+    if (EXISTING_NAME_OVERRIDE[name] === null || name === "ダンベルラック") continue;
     const photo = (r[idx["写真"]] || "").trim();
+    if (photo === "freeweight_10") continue;
     const id = resolveId(photo, used);
     if (!id) continue;
     const width_cm = mmToCm(r[idx["幅(mm)"]]);
@@ -227,6 +230,40 @@ async function fetchExisting(used) {
     });
   }
   return machines;
+}
+
+function buildDumbbellAreas(used) {
+  return DUMBBELL_AREA_MACHINES.map((row) => {
+    used.add(row.id);
+    const width_cm = row.width_cm;
+    const length_cm = row.length_cm;
+    const module_width_cm = width_cm + CLEARANCE_CM * 2;
+    const module_length_cm = length_cm + CLEARANCE_CM * 2;
+    return {
+      id: row.id,
+      name: row.name,
+      brand: row.brand || "",
+      model: row.model || "",
+      category: "freeweight",
+      genre: "freeweight",
+      source: "existing",
+      qty: row.qty || 1,
+      width_cm,
+      length_cm,
+      clearance_cm: CLEARANCE_CM,
+      module_width_cm,
+      module_length_cm,
+      place_px_w: module_width_cm,
+      place_px_h: module_length_cm,
+      has_art: true,
+      // 暫定: 既存ダンベルラック写真を流用（本体枠にフィット）
+      lp_image: "freeweight_10.jpg",
+      place_file: "freeweight_10_place.png",
+      preview_file: "freeweight_10_preview.png",
+      photo_key: "freeweight_10",
+      note: row.note || "",
+    };
+  });
 }
 
 async function fetchNew(used) {
@@ -316,19 +353,20 @@ export default async function handler(req, res) {
   try {
     const used = new Set();
     const existing = await fetchExisting(used);
+    const dumbbellAreas = buildDumbbellAreas(used);
     let neu = [];
     try {
       neu = await fetchNew(used);
     } catch (err) {
       console.warn("new machines fetch failed", err);
     }
-    const machines = [...existing, ...neu];
+    const machines = [...existing, ...dumbbellAreas, ...neu];
     return res.status(200).json({
       ok: true,
-      source: "sheet:既存+新マシン",
+      source: "sheet:既存+新マシン+ダンベルエリア",
       syncedAt: new Date().toISOString(),
       count: machines.length,
-      existingCount: existing.length,
+      existingCount: existing.length + dumbbellAreas.length,
       newCount: neu.length,
       genres: GENRE,
       machines,
