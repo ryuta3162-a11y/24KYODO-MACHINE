@@ -37,13 +37,11 @@
 
   <div class="zonebar" id="zonebar">
     <span class="zonebar-title">ゾーン</span>
-    <button type="button" class="btn zone-tool" id="btn-zone-rect" data-tool="rect">□ 四角</button>
-    <button type="button" class="btn zone-tool" id="btn-zone-circle" data-tool="circle">○ 丸</button>
-    <button type="button" class="btn" id="btn-zone-off">選択</button>
+    <button type="button" class="btn zone-tool" id="btn-zone-rect" data-tool="rect" title="ドラッグで四角ゾーンを追加">□ 四角</button>
+    <button type="button" class="btn active" id="btn-zone-off" title="ゾーンを選んで移動・変形">選択</button>
     <button type="button" class="btn" id="btn-zone-vertical" title="縦書き切替" disabled>縦書</button>
     <button type="button" class="btn" id="btn-zone-flip-x" title="左右反転" disabled>左右</button>
     <button type="button" class="btn" id="btn-zone-flip-y" title="上下反転" disabled>上下</button>
-    <button type="button" class="btn danger" id="btn-zone-del" disabled>ゾーン削除</button>
     <label class="zone-label-wrap">
       名称
       <input id="zone-label" type="text" maxlength="40" placeholder="例: レジスタンス" />

@@ -81,6 +81,7 @@ const state = {
   zoneEditUid: null,
   zoneResize: null,
   zoneLabelDrag: null,
+  zoneMove: null,
   zonePointerMoved: false,
 };
 
@@ -107,12 +108,10 @@ const el = {
   zoneLabel: document.getElementById("zone-label"),
   zoneColors: document.getElementById("zone-colors"),
   btnZoneRect: document.getElementById("btn-zone-rect"),
-  btnZoneCircle: document.getElementById("btn-zone-circle"),
   btnZoneOff: document.getElementById("btn-zone-off"),
   btnZoneVertical: document.getElementById("btn-zone-vertical"),
   btnZoneFlipX: document.getElementById("btn-zone-flip-x"),
   btnZoneFlipY: document.getElementById("btn-zone-flip-y"),
-  btnZoneDel: document.getElementById("btn-zone-del"),
   btnFit: document.getElementById("btn-fit"),
   btnRotate: document.getElementById("btn-rotate"),
   btnDup: document.getElementById("btn-dup"),
@@ -830,11 +829,11 @@ function zoneLabelText() {
 }
 
 function setZoneTool(tool) {
-  state.zoneTool = tool || null;
+  state.zoneTool = tool === "rect" ? "rect" : null;
   state.zoneDraft = null;
   if (tool) state.zoneEditUid = null;
   el.btnZoneRect?.classList.toggle("active", state.zoneTool === "rect");
-  el.btnZoneCircle?.classList.toggle("active", state.zoneTool === "circle");
+  el.btnZoneOff?.classList.toggle("active", !state.zoneTool);
   el.viewport?.classList.toggle("zone-draw", !!state.zoneTool);
   renderZones();
 }
@@ -843,6 +842,7 @@ function clearZoneEdit() {
   state.zoneEditUid = null;
   state.zoneResize = null;
   state.zoneLabelDrag = null;
+  state.zoneMove = null;
 }
 
 function zoneBounds(z) {
@@ -998,11 +998,29 @@ function onZonePointerDown(e) {
   e.stopPropagation();
   const uidVal = e.currentTarget.dataset.uid;
   selectZone(uidVal, { additive: e.shiftKey || e.ctrlKey || e.metaKey });
+  // シングル選択ならすぐ編集ハンドル＋移動できるようにする
+  if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    state.zoneEditUid = uidVal;
+  }
+  const z = state.zones.find((x) => x.uid === uidVal);
+  const plan = clientToPlan(e.clientX, e.clientY);
   state.zonePointerMoved = false;
   state.zoneTapCandidate = uidVal;
+  if (z) {
+    state.zoneMove = {
+      uid: uidVal,
+      start: plan,
+      orig:
+        z.type === "circle"
+          ? { cx: z.cx, cy: z.cy, r: z.r }
+          : { x: z.x, y: z.y, w: z.w, h: z.h },
+      undid: false,
+    };
+  }
   renderZones();
   renderMachines();
   updateChrome();
+  e.currentTarget.setPointerCapture?.(e.pointerId);
 }
 
 function onZoneHandlePointerDown(e, uidVal, handle) {
@@ -1109,11 +1127,13 @@ function finalizeZoneDraft() {
   state.zones.push(zone);
   state.selectedZoneUids = new Set([zone.uid]);
   state.selectedUids = new Set();
+  // 描画後はすぐ選択モードへ（ハンドルでサイズ調整できる）
+  setZoneTool(null);
   state.zoneEditUid = zone.uid;
   renderZones();
   renderMachines();
   updateChrome();
-  flash(zone.label ? `ゾーン: ${zone.label}` : "ゾーン追加");
+  flash(zone.label ? `ゾーン追加: ${zone.label}` : "ゾーン追加（ドラッグで調整）");
 }
 
 function applyZoneLabelFromInput() {
@@ -1245,7 +1265,6 @@ function updateChrome() {
   el.btnRotate.disabled = !has;
   el.btnDup.disabled = !has;
   el.btnDel.disabled = !has && !hasZone;
-  if (el.btnZoneDel) el.btnZoneDel.disabled = !hasZone;
   if (el.btnZoneVertical) el.btnZoneVertical.disabled = !hasZone;
   if (el.btnZoneFlipX) el.btnZoneFlipX.disabled = !hasZone;
   if (el.btnZoneFlipY) el.btnZoneFlipY.disabled = !hasZone;
@@ -1614,6 +1633,30 @@ function onPointerMove(e) {
     renderZones();
     return;
   }
+  if (state.zoneMove) {
+    const z = state.zones.find((x) => x.uid === state.zoneMove.uid);
+    if (!z) return;
+    const plan = clientToPlan(e.clientX, e.clientY);
+    const dx = plan.x - state.zoneMove.start.x;
+    const dy = plan.y - state.zoneMove.start.y;
+    if (Math.hypot(dx, dy) > 1) {
+      if (!state.zoneMove.undid) {
+        pushUndo();
+        state.zoneMove.undid = true;
+      }
+      state.zonePointerMoved = true;
+    }
+    const o = state.zoneMove.orig;
+    if (z.type === "circle") {
+      z.cx = o.cx + dx;
+      z.cy = o.cy + dy;
+    } else {
+      z.x = o.x + dx;
+      z.y = o.y + dy;
+    }
+    renderZones();
+    return;
+  }
   if (state.zoneLabelDrag) {
     const z = state.zones.find((x) => x.uid === state.zoneLabelDrag.uid);
     if (!z) return;
@@ -1702,9 +1745,13 @@ function onPointerUp() {
     finalizeZoneDraft();
   }
   const wasResizing = !!state.zoneResize;
+  const wasMoving = !!state.zoneMove?.undid;
   if (state.zoneResize) {
     state.zoneResize = null;
     updateChrome();
+  }
+  if (state.zoneMove) {
+    state.zoneMove = null;
   }
   if (state.zoneLabelDrag) {
     const uidVal = state.zoneLabelDrag.uid;
@@ -1719,7 +1766,7 @@ function onPointerUp() {
         state.lastZoneTap = { uid: uidVal, t: now };
       }
     }
-  } else if (!wasResizing && state.zoneTapCandidate && !state.zonePointerMoved) {
+  } else if (!wasResizing && !wasMoving && state.zoneTapCandidate && !state.zonePointerMoved) {
     const uidVal = state.zoneTapCandidate;
     const now = performance.now();
     if (state.lastZoneTap.uid === uidVal && now - state.lastZoneTap.t < 450) {
@@ -2231,9 +2278,7 @@ async function init() {
   el.btnExport.addEventListener("click", () => exportPng().catch(console.error));
   el.history.addEventListener("change", () => restoreHistory(el.history.value));
   el.btnZoneRect?.addEventListener("click", () => setZoneTool(state.zoneTool === "rect" ? null : "rect"));
-  el.btnZoneCircle?.addEventListener("click", () => setZoneTool(state.zoneTool === "circle" ? null : "circle"));
   el.btnZoneOff?.addEventListener("click", () => setZoneTool(null));
-  el.btnZoneDel?.addEventListener("click", delSelectedZones);
   el.btnZoneVertical?.addEventListener("click", toggleSelectedZonesVertical);
   el.btnZoneFlipX?.addEventListener("click", () => flipSelectedZones("x"));
   el.btnZoneFlipY?.addEventListener("click", () => flipSelectedZones("y"));
