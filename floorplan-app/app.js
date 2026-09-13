@@ -2066,6 +2066,8 @@ function delSelected() {
   renderPalette();
   updateChrome();
 }
+
+function copySelected() {
   const sels = selectedItems();
   if (!sels.length) {
     flash("未選択");
