@@ -61,19 +61,32 @@ function normalizeZones(raw) {
       const uid = String(z.uid || "").trim() || crypto.randomUUID();
       const label = String(z.label || "").trim().slice(0, 40);
       const color = String(z.color || "rgba(213,216,220,0.45)").slice(0, 64);
+      const labelDx = Number(z.labelDx);
+      const labelDy = Number(z.labelDy);
+      const meta = {
+        uid,
+        type,
+        label,
+        color,
+        labelDx: Number.isFinite(labelDx) ? labelDx : 0,
+        labelDy: Number.isFinite(labelDy) ? labelDy : 0,
+        flipX: !!z.flipX,
+        flipY: !!z.flipY,
+        vertical: !!z.vertical,
+      };
       if (type === "circle") {
         const cx = Number(z.cx);
         const cy = Number(z.cy);
         const r = Number(z.r);
         if (![cx, cy, r].every(Number.isFinite) || r < 4) return null;
-        return { uid, type, label, color, cx, cy, r };
+        return { ...meta, cx, cy, r };
       }
       const x = Number(z.x);
       const y = Number(z.y);
       const w = Number(z.w);
       const h = Number(z.h);
       if (![x, y, w, h].every(Number.isFinite) || w < 4 || h < 4) return null;
-      return { uid, type, label, color, x, y, w, h };
+      return { ...meta, x, y, w, h };
     })
     .filter(Boolean);
 }

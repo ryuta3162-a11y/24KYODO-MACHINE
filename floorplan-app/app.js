@@ -1229,13 +1229,14 @@ async function saveCloud() {
     const json = await res.json().catch(() => ({}));
     if (!res.ok || !json.ok) throw new Error(json.error || "save failed");
 
-    // 保存結果をそのまま反映（直後の再GETで空になるレースを防ぐ）
+    // 保存結果をそのまま反映（直後の再GETで古いBlobが返って消えるのを防ぐ）
     const savedItems = Array.isArray(json.data?.items) ? json.data.items : snapshot;
     const savedZones = Array.isArray(json.data?.zones) ? json.data.zones : zoneSnap;
     state.items = savedItems.map((it) => ({ ...it }));
     state.zones = savedZones.map((z) => ({ ...z }));
     state.updatedAt = json.data?.updatedAt || new Date().toISOString();
     state.updatedBy = json.data?.updatedBy || authorName();
+    clearZoneEdit();
 
     const savedEntry = json.data?.savedEntry;
     if (savedEntry && savedEntry.id) {
@@ -1250,19 +1251,12 @@ async function saveCloud() {
       ].slice(0, 40);
     }
 
-    // 履歴メタ更新のため遅延リロード（空データなら現状維持）
+    // 履歴メタだけ遅延同期。items/zones は保存レスポンスを信頼（読取遅延で欠落するのを防ぐ）
+    const savedAt = state.updatedAt;
     setTimeout(() => {
       fetchRoom()
         .then((data) => {
-          const remote = Array.isArray(data.items) ? data.items : null;
-          if (remote && !(remote.length === 0 && snapshot.length > 0)) {
-            state.items = remote.map((it) => ({ ...it }));
-          }
-          if (Array.isArray(data.zones)) {
-            state.zones = data.zones.map((z) => ({ ...z }));
-          }
           if (Array.isArray(data.history) && data.history.length) {
-            // サーバ履歴に items がある場合はそれを優先
             state.history = data.history.map((h) => {
               if (Array.isArray(h.items) || Array.isArray(h.zones)) return h;
               const local = (state.history || []).find((x) => x.id === h.id);
@@ -1275,14 +1269,25 @@ async function saveCloud() {
                 : h;
             });
           }
-          state.updatedAt = data.updatedAt || state.updatedAt;
-          state.updatedBy = data.updatedBy || state.updatedBy;
+          // 新しい保存より古い応答なら配置を上書きしない
+          const remoteAt = data.updatedAt ? Date.parse(data.updatedAt) : 0;
+          const localAt = savedAt ? Date.parse(savedAt) : 0;
+          if (Number.isFinite(remoteAt) && Number.isFinite(localAt) && remoteAt >= localAt) {
+            if (Array.isArray(data.items) && data.items.length >= snapshot.length) {
+              state.items = data.items.map((it) => ({ ...it }));
+            }
+            if (Array.isArray(data.zones) && data.zones.length >= zoneSnap.length) {
+              state.zones = data.zones.map((z) => ({ ...z }));
+            }
+            state.updatedAt = data.updatedAt || state.updatedAt;
+            state.updatedBy = data.updatedBy || state.updatedBy;
+          }
           renderHistory();
           renderZones();
           renderMachines();
         })
         .catch(() => {});
-    }, 800);
+    }, 1200);
 
     renderHistory();
     renderZones();

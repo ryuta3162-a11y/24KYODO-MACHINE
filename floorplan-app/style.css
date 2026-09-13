@@ -136,9 +136,6 @@ html, body {
   z-index: 2;
   pointer-events: none;
 }
-.zones-layer.is-editing {
-  z-index: 9;
-}
 .zone-shape {
   position: absolute;
   box-sizing: border-box;
@@ -165,7 +162,7 @@ html, body {
   outline: 3px solid #111;
   outline-offset: 0;
   box-shadow: none;
-  z-index: 4;
+  z-index: 3;
 }
 .zone-shape.draft {
   pointer-events: none;
