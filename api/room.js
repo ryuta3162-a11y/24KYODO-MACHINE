@@ -197,17 +197,39 @@ export default async function handler(req, res) {
         }
       }
 
-      const entry = {
-        id: entryId,
-        at: now,
-        by,
-        note,
-        count: items.length,
-        zoneCount: zones.length,
-        items,
-        zones,
-      };
-      const history = [entry, ...(current.history || [])].slice(0, MAX_HISTORY);
+      // 自動保存は履歴に実体を持たせず軽量化（手動保存のみ復元可能なスナップショットを残す）
+      const entry = auto
+        ? {
+            id: entryId,
+            at: now,
+            by,
+            note: note || "自動保存",
+            count: items.length,
+            zoneCount: zones.length,
+          }
+        : {
+            id: entryId,
+            at: now,
+            by,
+            note,
+            count: items.length,
+            zoneCount: zones.length,
+            items,
+            zones,
+          };
+      const prevHistory = Array.isArray(current.history) ? current.history : [];
+      const history = [entry, ...prevHistory]
+        .map((h) => {
+          if (!h || typeof h !== "object") return null;
+          // 古い自動保存の巨大スナップショットを段階的に落とす
+          if (h.note === "自動保存" && (Array.isArray(h.items) || Array.isArray(h.zones))) {
+            const { items: _i, zones: _z, ...meta } = h;
+            return meta;
+          }
+          return h;
+        })
+        .filter(Boolean)
+        .slice(0, MAX_HISTORY);
 
       const next = {
         roomId,

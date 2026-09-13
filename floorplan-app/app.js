@@ -89,6 +89,8 @@ const state = {
   dirty: false,
   autosaveTimer: null,
   autosaveInFlight: false,
+  needsResave: false,
+  saveRetryCount: 0,
   lastSavedFp: "",
   saveQueue: Promise.resolve(),
   tabId: crypto.randomUUID(),
@@ -446,10 +448,11 @@ function markDirty({ immediate = false } = {}) {
 
 function saveSoon() {
   if (state.autosaveTimer) clearTimeout(state.autosaveTimer);
+  // 連続操作は少し待ってまとめて送る（待ちすぎず、連打POSTも避ける）
   state.autosaveTimer = setTimeout(() => {
     state.autosaveTimer = null;
     runAutosave();
-  }, 120);
+  }, 280);
 }
 
 function touchTabLock() {
@@ -478,6 +481,7 @@ function isPrimaryTab() {
 }
 
 function isBusyForAutosave() {
+  // 保存中でも編集は続行。ドラッグ等の操作中だけ送らない
   return !!(
     state.zoneMove ||
     state.zoneResize ||
@@ -485,8 +489,7 @@ function isBusyForAutosave() {
     state.zoneDraft ||
     state.dragPrimaryUid ||
     state.panning ||
-    state.marquee ||
-    state.autosaveInFlight
+    state.marquee
   );
 }
 
@@ -506,12 +509,20 @@ function runAutosave() {
   }
   if (contentFingerprint() === state.lastSavedFp) {
     state.dirty = false;
+    state.needsResave = false;
     state.saveStatus = "saved";
     updateDirtyUi();
     return;
   }
   if (isBusyForAutosave()) {
+    state.needsResave = true;
     scheduleAutosave();
+    return;
+  }
+  if (state.autosaveInFlight) {
+    // 飛行中の追加編集は「終わったら最新をもう一回」に合流
+    state.needsResave = true;
+    updateSaveStatusUi();
     return;
   }
   if (!isPrimaryTab()) {
@@ -535,6 +546,58 @@ function enqueueSave(opts = {}) {
     .catch(() => {})
     .then(() => saveCloud(opts));
   return state.saveQueue;
+}
+
+function fingerprintOfRoomData(data) {
+  const items = Array.isArray(data?.items) ? data.items : [];
+  const zones = Array.isArray(data?.zones) ? data.zones : [];
+  return contentFingerprint(items, zones);
+}
+
+/** 自動保存の 409 を、同じ人の連打・Blob遅延として握りつぶして再送する */
+async function handleAutosaveConflict(json, { sentFp, force }) {
+  const serverData = json?.data || null;
+  const serverFp = serverData ? fingerprintOfRoomData(serverData) : "";
+  const serverAt = serverData?.updatedAt ? String(serverData.updatedAt) : "";
+  const localAt = state.updatedAt ? String(state.updatedAt) : "";
+
+  // 自分がさっき保存した内容 / 今送った内容と同じ → 版番号だけ合わせて続行
+  if (serverFp && (serverFp === sentFp || serverFp === state.lastSavedFp)) {
+    if (serverAt) state.updatedAt = serverAt;
+    if (serverData?.updatedBy) state.updatedBy = serverData.updatedBy;
+    if (serverFp === sentFp) state.lastSavedFp = sentFp;
+    state.saveRetryCount = 0;
+    if (contentFingerprint() !== state.lastSavedFp) {
+      state.dirty = true;
+      state.needsResave = true;
+      state.saveStatus = "dirty";
+      updateDirtyUi();
+      saveSoon();
+    } else {
+      state.dirty = false;
+      state.needsResave = false;
+      state.saveStatus = "saved";
+      updateDirtyUi();
+    }
+    return true;
+  }
+
+  // サーバ読取がクライアント既知より古い（Blob遅延）→ 強制でもう一回
+  if (localAt && serverAt && serverAt < localAt && state.saveRetryCount < 2) {
+    state.saveRetryCount += 1;
+    await saveCloud({ auto: true, force: true });
+    return true;
+  }
+
+  // まだリトライ余地あり：サーバ版番号だけ取り込み、ローカル編集は保持して再送
+  if (!force && state.saveRetryCount < 2) {
+    if (serverAt) state.updatedAt = serverAt;
+    state.saveRetryCount += 1;
+    await saveCloud({ auto: true, force: state.saveRetryCount >= 2 });
+    return true;
+  }
+
+  return false;
 }
 
 function undoLast() {
@@ -1637,6 +1700,8 @@ function applyRoomData(data, { keepSelection = false } = {}) {
   renderMachines();
   state.lastSavedFp = contentFingerprint();
   state.dirty = false;
+  state.needsResave = false;
+  state.saveRetryCount = 0;
   state.conflictPending = false;
   state.conflictServerData = null;
   state.saveStatus = "saved";
@@ -1668,6 +1733,7 @@ async function saveCloud({ auto = false, force = false } = {}) {
   const sentFp = contentFingerprint(snapshot, zoneSnap);
   if (!auto) flash("保存中…");
   state.autosaveInFlight = true;
+  state.needsResave = false;
   state.saveStatus = "saving";
   el.btnSave?.classList.add("is-saving");
   if (el.btnSave) el.btnSave.textContent = "保存中…";
@@ -1690,6 +1756,10 @@ async function saveCloud({ auto = false, force = false } = {}) {
     const json = await res.json().catch(() => ({}));
 
     if (res.status === 409 && json.error === "version_conflict") {
+      if (auto) {
+        const handled = await handleAutosaveConflict(json, { sentFp, force });
+        if (handled) return;
+      }
       openConflictModal(json.data || null);
       showSaveToast("保存が競合しました。どちらを残すか選んでください", { error: true });
       flash("競合");
@@ -1701,6 +1771,7 @@ async function saveCloud({ auto = false, force = false } = {}) {
     // 強制保存などで競合を解消
     state.conflictPending = false;
     state.conflictServerData = null;
+    state.saveRetryCount = 0;
     hideConflictModal();
 
     const savedAt = json.data?.updatedAt || new Date().toISOString();
@@ -1714,12 +1785,14 @@ async function saveCloud({ auto = false, force = false } = {}) {
       state.items = savedItems.map((it) => ({ ...it }));
       state.zones = savedZones.map((z) => ({ ...z }));
       state.dirty = false;
+      state.needsResave = false;
       state.lastSavedFp = contentFingerprint();
       state.saveStatus = "saved";
       if (!auto) clearZoneEdit();
     } else {
-      // サーバの版番号だけ進め、ローカル編集は残して再自動保存
+      // サーバの版番号だけ進め、ローカル編集は残して直後に再保存
       state.dirty = true;
+      state.needsResave = true;
       state.lastSavedFp = sentFp;
       state.saveStatus = "dirty";
     }
@@ -1765,15 +1838,17 @@ async function saveCloud({ auto = false, force = false } = {}) {
     }, 1200);
 
     renderHistory();
-    renderZones();
-    renderMachines();
+    // 保存中に編集されていたら画面をサーバ応答で塗り直さない
+    if (!localChangedDuringSave) {
+      renderZones();
+      renderMachines();
+    }
     await refreshPeerCounts();
     renderPalette();
     updateDirtyUi();
-    if (localChangedDuringSave) {
-      showSaveToast(auto ? "自動保存（続きを再保存します）" : "保存（続きを再保存します）");
-      flash("追加分を再保存");
-      scheduleAutosave();
+    if (localChangedDuringSave || state.needsResave) {
+      flash("続きを保存");
+      saveSoon();
     } else {
       showSaveToast(auto ? "自動保存しました" : "保存されました");
       flash(auto ? "自動保存" : "保存済み");
@@ -1785,6 +1860,13 @@ async function saveCloud({ auto = false, force = false } = {}) {
     state.autosaveInFlight = false;
     el.btnSave?.classList.remove("is-saving");
     updateDirtyUi();
+    // 保存完了後に溜まっていた編集があればすぐ送る
+    if (
+      !state.conflictPending &&
+      (state.needsResave || (state.dirty && contentFingerprint() !== state.lastSavedFp))
+    ) {
+      saveSoon();
+    }
   }
 }
 
