@@ -83,6 +83,8 @@ const state = {
   zoneLabelDrag: null,
   zoneMove: null,
   zonePointerMoved: false,
+  /** 他フロアに置いてある台数（id -> count）。2F+3F合算の残数計算用 */
+  peerCounts: {},
 };
 
 const el = {
@@ -246,7 +248,9 @@ function findMachine(id) {
 }
 
 function placedCount(id) {
-  return state.items.filter((i) => i.id === id && !i.hidden).length;
+  const here = state.items.filter((i) => i.id === id && !i.hidden).length;
+  const peer = Number(state.peerCounts?.[id]) || 0;
+  return here + peer;
 }
 
 function remainingOf(id) {
@@ -257,6 +261,29 @@ function remainingOf(id) {
 
 function canPlaceMore(id, n = 1) {
   return remainingOf(id) >= n;
+}
+
+/** 他フロアの配置台数を取得（館内の残り台数を合わせる） */
+async function refreshPeerCounts() {
+  const counts = {};
+  const rooms = Object.keys(ROOMS).filter((id) => id !== state.roomId);
+  await Promise.all(
+    rooms.map(async (roomId) => {
+      try {
+        const res = await fetch(`/api/room?id=${encodeURIComponent(roomId)}`, { cache: "no-store" });
+        const json = await res.json();
+        if (!res.ok || !json.ok) return;
+        const items = Array.isArray(json.data?.items) ? json.data.items : [];
+        for (const it of items) {
+          if (!it?.id || it.hidden) continue;
+          counts[it.id] = (counts[it.id] || 0) + 1;
+        }
+      } catch (err) {
+        console.warn("peer room load failed", roomId, err);
+      }
+    })
+  );
+  state.peerCounts = counts;
 }
 
 function applyView() {
@@ -1320,6 +1347,8 @@ async function loadCloud(showFlash = true) {
   if (showFlash) flash("読込中…");
   const data = await fetchRoom();
   applyRoomData(data);
+  await refreshPeerCounts();
+  renderPalette();
   if (showFlash) flash(data.updatedAt ? "最新を表示" : "まだ空です");
 }
 
@@ -1407,6 +1436,8 @@ async function saveCloud() {
     renderHistory();
     renderZones();
     renderMachines();
+    await refreshPeerCounts();
+    renderPalette();
     showSaveToast("保存されました");
     flash("保存済み");
   } finally {
