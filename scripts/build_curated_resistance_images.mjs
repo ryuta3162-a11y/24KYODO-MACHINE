@@ -45,6 +45,10 @@ const DIRECT = {
 };
 
 const REFORMER_SRC = path.join(ROOT, "pilates_reformer.jpg");
+const LOCAL_IMAGE = {
+  pilates_reformer: REFORMER_SRC,
+  pilates_chair: path.join(ROOT, "pilates_chair.jpg"),
+};
 
 function fetchBuf(url, redirects = 0) {
   return new Promise((resolve, reject) => {
@@ -126,9 +130,15 @@ async function makePlace(rawBuf, widthCm, lengthCm, outPlace, outPreview) {
 }
 
 async function loadImage(job) {
-  if (job.id === "pilates_reformer" || job.local_image) {
-    if (!fs.existsSync(REFORMER_SRC)) throw new Error("reformer src missing");
-    return fs.readFileSync(REFORMER_SRC);
+  if (job.local_image || LOCAL_IMAGE[job.id]) {
+    const src =
+      typeof job.local_image === "string"
+        ? path.isAbsolute(job.local_image)
+          ? job.local_image
+          : path.join(ROOT, job.local_image)
+        : LOCAL_IMAGE[job.id];
+    if (!src || !fs.existsSync(src)) throw new Error(`local image missing: ${job.id}`);
+    return fs.readFileSync(src);
   }
   const urls = [...(DIRECT[job.id] || []), job.image_url].filter(Boolean);
   // scrape og:image from product page
