@@ -133,7 +133,7 @@ html, body {
 .zones-layer {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 6;
   pointer-events: none;
 }
 .zone-shape {
@@ -152,6 +152,7 @@ html, body {
   line-height: 1.25;
   user-select: none;
   border: 2px solid transparent;
+  touch-action: none;
 }
 .zone-shape.rect {
   border-radius: 4px;
@@ -159,10 +160,16 @@ html, body {
 .zone-shape.circle {
   border-radius: 50%;
 }
+.zone-shape.vertical {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.08em;
+}
 .zone-shape.selected {
-  outline: 3px solid var(--red);
-  outline-offset: 1px;
-  z-index: 3;
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+  z-index: 7;
 }
 .zone-shape.draft {
   pointer-events: none;
@@ -422,7 +429,12 @@ html, body {
   pointer-events: none;
   user-select: none;
 }
-.machines-layer { position: absolute; inset: 0; z-index: 4; }
+.machines-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
 .guides-layer {
   position: absolute;
   inset: 0;
@@ -465,6 +477,7 @@ html, body {
   touch-action: none;
   user-select: none;
   overflow: hidden;
+  pointer-events: auto;
 }
 .machine img {
   display: block;

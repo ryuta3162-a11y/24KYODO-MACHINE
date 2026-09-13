@@ -80,6 +80,8 @@ const el = {
   btnZoneRect: document.getElementById("btn-zone-rect"),
   btnZoneCircle: document.getElementById("btn-zone-circle"),
   btnZoneOff: document.getElementById("btn-zone-off"),
+  btnZoneVertical: document.getElementById("btn-zone-vertical"),
+  btnZoneDel: document.getElementById("btn-zone-del"),
   btnFit: document.getElementById("btn-fit"),
   btnRotate: document.getElementById("btn-rotate"),
   btnDup: document.getElementById("btn-dup"),
@@ -761,7 +763,7 @@ function initZoneColors() {
 
 function renderZoneNode(z, { draft = false } = {}) {
   const node = document.createElement("div");
-  node.className = `zone-shape ${z.type}${draft ? " draft" : ""}${
+  node.className = `zone-shape ${z.type}${z.vertical ? " vertical" : ""}${draft ? " draft" : ""}${
     !draft && state.selectedZoneUids.has(z.uid) ? " selected" : ""
   }`;
   node.style.background = z.color || state.zoneColor;
@@ -780,6 +782,7 @@ function renderZoneNode(z, { draft = false } = {}) {
   }
   if (!draft) {
     node.dataset.uid = z.uid;
+    node.title = z.label ? `${z.label}（クリックで選択 / Deleteで削除）` : "クリックで選択 / Deleteで削除";
     node.addEventListener("pointerdown", onZonePointerDown);
   }
   return node;
@@ -968,6 +971,8 @@ function updateChrome() {
   el.btnRotate.disabled = !has;
   el.btnDup.disabled = !has;
   el.btnDel.disabled = !has && !hasZone;
+  if (el.btnZoneDel) el.btnZoneDel.disabled = !hasZone;
+  if (el.btnZoneVertical) el.btnZoneVertical.disabled = !hasZone;
   if (el.statusRoom) el.statusRoom.textContent = state.roomId;
   renderProductLinkChips();
 }
@@ -1595,8 +1600,33 @@ function dupSelected() {
   pasteClipboard(selectedItems().map((it) => ({ id: it.id, x: it.x, y: it.y, rot: it.rot, hidden: !!it.hidden, trimmed: !!it.trimmed })), 40, 40);
 }
 
+function delSelectedZones() {
+  if (!state.selectedZoneUids.size) return;
+  pushUndo();
+  state.zones = state.zones.filter((z) => !state.selectedZoneUids.has(z.uid));
+  state.selectedZoneUids = new Set();
+  renderZones();
+  renderMachines();
+  updateChrome();
+  flash("ゾーン削除");
+}
+
+function toggleSelectedZonesVertical() {
+  if (!state.selectedZoneUids.size) return;
+  pushUndo();
+  for (const z of state.zones) {
+    if (state.selectedZoneUids.has(z.uid)) z.vertical = !z.vertical;
+  }
+  renderZones();
+  updateChrome();
+}
+
 function delSelected() {
   if (!state.selectedUids.size && !state.selectedZoneUids.size) return;
+  if (state.selectedZoneUids.size && !state.selectedUids.size) {
+    delSelectedZones();
+    return;
+  }
   pushUndo();
   if (state.selectedUids.size) {
     state.items = state.items.filter((i) => !state.selectedUids.has(i.uid));
@@ -1608,6 +1638,7 @@ function delSelected() {
   }
   renderZones();
   renderMachines();
+  updateChrome();
 }
 
 function copySelected() {
@@ -1830,6 +1861,8 @@ async function init() {
   el.btnZoneRect?.addEventListener("click", () => setZoneTool(state.zoneTool === "rect" ? null : "rect"));
   el.btnZoneCircle?.addEventListener("click", () => setZoneTool(state.zoneTool === "circle" ? null : "circle"));
   el.btnZoneOff?.addEventListener("click", () => setZoneTool(null));
+  el.btnZoneDel?.addEventListener("click", delSelectedZones);
+  el.btnZoneVertical?.addEventListener("click", toggleSelectedZonesVertical);
   el.zoneLabel?.addEventListener("change", applyZoneLabelFromInput);
   el.zoneLabel?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
