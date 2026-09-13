@@ -1,4 +1,5 @@
 import { displayExisting, displayNew, DUMBBELL_AREA_MACHINES, EXISTING_NAME_OVERRIDE } from "./displayNames.js";
+import { CURATED_RESISTANCE_MACHINES, SKIP_NEW_SHEET_NAMES } from "./curatedResistance.js";
 
 const SHEET_ID = "1YR4UNjOHT-AManewnSOEPxuR01kBVwXfgoCAjDsPeOw";
 const EXISTING_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("既存マシン")}`;
@@ -154,7 +155,7 @@ function genreNew(name, zone) {
     return "cardio";
   }
   if (
-    /select |selectorized|insignia|abdominal crunch|assist dip|3d multi-abductor|ウェイトスタック|hammer strength select/.test(
+    /select |selectorized|insignia|abdominal crunch|assist dip|3d multi-abductor|ウェイトスタック|hammer strength select|hoist|roc-it|cybex ion|matrix.?ultra|prone leg/.test(
       s
     )
   ) {
@@ -265,6 +266,50 @@ function buildDumbbellAreas(used) {
   });
 }
 
+function buildCuratedResistance(used) {
+  return CURATED_RESISTANCE_MACHINES.map((row) => {
+    used.add(row.id);
+    const width_cm = row.width_cm;
+    const length_cm = row.length_cm;
+    const module_width_cm = width_cm + CLEARANCE_CM * 2;
+    const module_length_cm = length_cm + CLEARANCE_CM * 2;
+    const genre = row.genre || "stack";
+    return {
+      id: row.id,
+      name: row.name,
+      brand: row.brand || "",
+      model: row.model || "",
+      category:
+        genre === "cardio" || genre === "hyrox"
+          ? "cardio"
+          : genre === "freeweight"
+            ? "freeweight"
+            : "resistance",
+      genre,
+      source: "new",
+      qty: row.qty || 1,
+      sheet_qty: row.qty || 1,
+      width_cm,
+      length_cm,
+      height_cm: row.height_cm ?? null,
+      clearance_cm: CLEARANCE_CM,
+      module_width_cm,
+      module_length_cm,
+      place_px_w: module_width_cm,
+      place_px_h: module_length_cm,
+      has_art: true,
+      place_file: `${row.id}_place.png`,
+      preview_file: `${row.id}_preview.png`,
+      lp_image: `${row.id}.jpg`,
+      link: row.link || "",
+      note: row.note || "",
+      status: "採用中",
+      zone: row.zone || "",
+      load_type: row.load_type || "pin",
+    };
+  });
+}
+
 async function fetchNew(used) {
   const res = await fetch(NEW_CSV, { redirect: "follow", cache: "no-store" });
   if (!res.ok) throw new Error(`new sheet ${res.status}`);
@@ -290,6 +335,7 @@ async function fetchNew(used) {
   for (const r of rows.slice(1)) {
     const name = String(r[nameI] || "").trim();
     if (!name) continue;
+    if (SKIP_NEW_SHEET_NAMES.has(name)) continue;
     const width_cm = mmToCm(r[wI]);
     const length_cm = mmToCm(r[dI]);
     if (width_cm == null || length_cm == null) continue;
@@ -353,20 +399,21 @@ export default async function handler(req, res) {
     const used = new Set();
     const existing = await fetchExisting(used);
     const dumbbellAreas = buildDumbbellAreas(used);
+    const curated = buildCuratedResistance(used);
     let neu = [];
     try {
       neu = await fetchNew(used);
     } catch (err) {
       console.warn("new machines fetch failed", err);
     }
-    const machines = [...existing, ...dumbbellAreas, ...neu];
+    const machines = [...existing, ...dumbbellAreas, ...curated, ...neu];
     return res.status(200).json({
       ok: true,
-      source: "sheet:既存+新マシン+ダンベルエリア",
+      source: "sheet:既存+新マシン+ダンベルエリア+採用レジスタンス",
       syncedAt: new Date().toISOString(),
       count: machines.length,
       existingCount: existing.length + dumbbellAreas.length,
-      newCount: neu.length,
+      newCount: curated.length + neu.length,
       genres: GENRE,
       machines,
     });
