@@ -50,13 +50,15 @@ const DEFAULT_ROOM = "kyodo-2f";
 let PLAN_W = ROOMS[DEFAULT_ROOM].w;
 let PLAN_H = ROOMS[DEFAULT_ROOM].h;
 const AUTHOR_KEY = "kyodo-floorplan-author";
+const LAST_GOOD_KEY = "kyodo-floorplan-last";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
 const MACHINE_ADD_API = "/api/machine-add";
 
-function withArtVer(url) {
+function withArtVer(url, extra = "") {
   if (!url) return "";
-  return `${url}${url.includes("?") ? "&" : "?"}v=${ART_VER}`;
+  const join = url.includes("?") ? "&" : "?";
+  return `${url}${join}v=${ART_VER}${extra ? `&${extra}` : ""}`;
 }
 
 function machinePreviewUrl(m) {
@@ -68,9 +70,10 @@ function machinePreviewUrl(m) {
 }
 
 function machinePlaceUrl(m) {
-  if (m?.place_url) return withArtVer(m.place_url);
+  const bust = m?.updatedAt ? `u=${encodeURIComponent(String(m.updatedAt))}` : "";
+  if (m?.place_url) return withArtVer(m.place_url, bust);
   if (m?.has_art !== false && m?.place_file) {
-    return `${encodeURI(PLACE_BASE + m.place_file)}?v=${ART_VER}`;
+    return `${encodeURI(PLACE_BASE + m.place_file)}?v=${ART_VER}${bust ? `&${bust}` : ""}`;
   }
   return "";
 }
@@ -967,7 +970,7 @@ function renderPalette() {
             ? `検討用 · ${m.width_cm}×${m.length_cm}`
             : `${m.width_cm}×${m.length_cm}（区画${m.module_width_cm}×${m.module_length_cm}）· 残 ${rem}/${m.qty}`;
       const badge = isWebExtra(m)
-        ? `<span class="card-badge">WEB</span>`
+        ? `<span class="card-badge is-new">ニュー</span>`
         : m.overridden
           ? `<span class="card-badge is-edit">編集済</span>`
           : "";
@@ -1206,6 +1209,11 @@ function renderMachines() {
         img.draggable = false;
         img.className = "machine-photo";
         img.onerror = () => {
+          if (!img.dataset.retry) {
+            img.dataset.retry = "1";
+            img.src = `${artUrl}${artUrl.includes("?") ? "&" : "?"}r=${Date.now()}`;
+            return;
+          }
           node.classList.remove("photo-bg", "with-clearance");
           node.classList.add("placeholder-art");
           label.remove();
@@ -1997,8 +2005,68 @@ function setSelectionLocked(locked, { itemUids = null, zoneUids = null } = {}) {
   flash(locked ? "ロック" : "ロック解除");
 }
 
+function roomContentCount(data) {
+  const items = Array.isArray(data?.items) ? data.items.length : 0;
+  const zones = Array.isArray(data?.zones) ? data.zones.length : 0;
+  return items + zones;
+}
+
+function rememberLastGood(data, roomId = state.roomId) {
+  if (!data || roomContentCount(data) <= 0) return;
+  try {
+    const payload = {
+      roomId,
+      updatedAt: data.updatedAt || new Date().toISOString(),
+      updatedBy: data.updatedBy || authorName(),
+      items: Array.isArray(data.items) ? data.items : [],
+      zones: Array.isArray(data.zones) ? data.zones : [],
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(`${LAST_GOOD_KEY}:${roomId}`, JSON.stringify(payload));
+  } catch {
+    /* quota */
+  }
+}
+
+function readLastGood(roomId = state.roomId) {
+  try {
+    const raw = localStorage.getItem(`${LAST_GOOD_KEY}:${roomId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.items)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function isNewerLayout(a, b) {
+  if (!a) return false;
+  if (!b) return true;
+  const at = String(a.updatedAt || "");
+  const bt = String(b.updatedAt || "");
+  if (at && bt && at !== bt) return at > bt;
+  return roomContentCount(a) > roomContentCount(b);
+}
+
+function pickRichestLayout(candidates) {
+  let best = null;
+  for (const c of candidates) {
+    if (!c) continue;
+    if (!best || isNewerLayout(c, best) || (roomContentCount(c) > roomContentCount(best) && !isNewerLayout(best, c))) {
+      best = c;
+    }
+  }
+  return best;
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 async function fetchRoom() {
-  const res = await fetch(`/api/room?id=${encodeURIComponent(state.roomId)}`, { cache: "no-store" });
+  const url = `/api/room?id=${encodeURIComponent(state.roomId)}&t=${Date.now()}`;
+  const res = await fetch(url, { cache: "no-store", headers: { "Cache-Control": "no-cache" } });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || !json.ok) {
     const err = new Error(json.error || "load failed");
@@ -2007,6 +2075,49 @@ async function fetchRoom() {
     throw err;
   }
   return json.data;
+}
+
+async function fetchRoomLatest() {
+  const local = readLastGood();
+  let best = null;
+  let lastErr = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const data = await fetchRoom();
+      best = pickRichestLayout([best, data]);
+      // Blob遅延で古い空/欠けが来る場合は短い間隔で取り直す
+      const localRicher =
+        local &&
+        roomContentCount(local) > roomContentCount(data) &&
+        (!data?.updatedAt || !local.updatedAt || String(local.updatedAt) >= String(data.updatedAt));
+      if (!localRicher && roomContentCount(data) > 0) break;
+      if (i < 2) await sleep(400);
+    } catch (err) {
+      lastErr = err;
+      if (i < 2) await sleep(400);
+    }
+  }
+  if (!best) {
+    if (local && roomContentCount(local) > 0) return { ...local, _fromLocal: true };
+    if (lastErr) throw lastErr;
+    return emptyFallbackRoom();
+  }
+  const chosen = pickRichestLayout([best, local]);
+  if (chosen === local && local && roomContentCount(local) > roomContentCount(best)) {
+    return { ...local, history: best.history, _fromLocal: true };
+  }
+  return chosen;
+}
+
+function emptyFallbackRoom() {
+  return {
+    roomId: state.roomId,
+    updatedAt: null,
+    updatedBy: null,
+    items: [],
+    zones: [],
+    history: [],
+  };
 }
 
 function applyRoomData(data, { keepSelection = false } = {}) {
@@ -2019,9 +2130,15 @@ function applyRoomData(data, { keepSelection = false } = {}) {
     }))
     .filter(inPlanBounds);
   state.zones = Array.isArray(data.zones) ? data.zones.map((z) => ({ ...z })) : [];
-  state.history = Array.isArray(data.history) ? data.history : [];
+  state.history = Array.isArray(data.history) ? data.history : state.history || [];
   state.updatedAt = data.updatedAt || null;
   state.updatedBy = data.updatedBy || null;
+  rememberLastGood({
+    updatedAt: state.updatedAt,
+    updatedBy: state.updatedBy,
+    items: state.items,
+    zones: state.zones,
+  });
   if (!keepSelection) {
     state.selectedUids = new Set();
     state.selectedZoneUids = new Set();
@@ -2047,15 +2164,27 @@ async function loadCloud(showFlash = true) {
     clearTimeout(state.autosaveTimer);
     state.autosaveTimer = null;
   }
-  state.dirty = false;
   try {
-    const data = await fetchRoom();
+    const data = await fetchRoomLatest();
     applyRoomData(data);
     await refreshPeerCounts();
     renderPalette();
-    if (showFlash) flash(data.updatedAt ? "最新を表示" : "まだ空です");
+    if (data._fromLocal) {
+      flash("最新（この端末の保存）");
+      showSaveToast("サーバが追いつく前なので、この端末の最新配置を表示しました");
+      markDirty({ immediate: true });
+    } else if (showFlash) {
+      flash(data.updatedAt ? "最新を表示" : "まだ空です");
+    }
   } catch (err) {
     console.error(err);
+    const local = readLastGood();
+    if (local && roomContentCount(local) > 0) {
+      applyRoomData(local);
+      flash("端末の最新を表示");
+      showSaveToast("サーバ読込に失敗したため、この端末の最新配置を表示しました", { error: true });
+      return;
+    }
     if (err?.code === "blob_store_suspended") {
       flash("保存ストレージ停止中");
       showSaveToast(err.messageJa || "Blobストアが停止中です。課金状態を確認してください", { error: true });
@@ -2142,6 +2271,12 @@ async function saveCloud({ auto = false, force = false } = {}) {
     }
     state.updatedAt = savedAt;
     state.updatedBy = savedBy;
+    rememberLastGood({
+      updatedAt: savedAt,
+      updatedBy: savedBy,
+      items: localChangedDuringSave ? state.items : snapshot,
+      zones: localChangedDuringSave ? state.zones : zoneSnap,
+    });
 
     const savedEntry = json.data?.savedEntry;
     if (savedEntry && savedEntry.id) {
@@ -3385,11 +3520,15 @@ async function init() {
     });
   }
 
-  // bfcache 復帰で別フロアの配置が残るのを防ぐ
+  // F5 / 戻るでも必ず最新配置を取り直す（bfcacheの古い画面を残さない）
   window.addEventListener("pageshow", (e) => {
     const urlRoom = roomFromUrl();
-    if (e.persisted || urlRoom !== state.roomId) {
+    if (urlRoom !== state.roomId) {
       switchRoom(urlRoom).catch(console.error);
+      return;
+    }
+    if (e.persisted) {
+      loadCloud(true).catch(console.error);
     }
   });
 
@@ -3489,9 +3628,43 @@ async function init() {
   });
   window.addEventListener("resize", () => fitView());
   window.addEventListener("beforeunload", (e) => {
+    rememberLastGood({
+      updatedAt: state.updatedAt || new Date().toISOString(),
+      updatedBy: authorName(),
+      items: state.items,
+      zones: state.zones,
+    });
     if (!state.dirty) return;
     e.preventDefault();
     e.returnValue = "";
+  });
+  window.addEventListener("pagehide", () => {
+    rememberLastGood({
+      updatedAt: state.updatedAt || new Date().toISOString(),
+      updatedBy: authorName(),
+      items: state.items,
+      zones: state.zones,
+    });
+    if (!state.dirty || state.conflictPending) return;
+    const body = JSON.stringify({
+      by: authorName(),
+      items: state.items,
+      zones: state.zones,
+      auto: true,
+      force: false,
+      note: "自動保存",
+      baseUpdatedAt: state.updatedAt || undefined,
+    });
+    try {
+      fetch(`/api/room?id=${encodeURIComponent(state.roomId)}&t=${Date.now()}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      });
+    } catch {
+      /* ignore */
+    }
   });
   window.addEventListener("focus", () => touchTabLock());
   document.addEventListener("visibilitychange", () => {

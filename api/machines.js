@@ -629,6 +629,8 @@ function mergeCustomCatalog(machines, catalog) {
           ...ex,
           status: ex.status || "WEB追加",
           has_art: ex.has_art !== false,
+          place_url: ex.place_url || "",
+          preview_url: ex.preview_url || "",
         },
         ex.updatedAt || Date.now()
       )
