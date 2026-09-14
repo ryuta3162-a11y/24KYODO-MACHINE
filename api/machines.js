@@ -5,6 +5,7 @@ import { readCustomCatalog, withArtUrls, buildSized, CLEARANCE_CM as CUSTOM_CLEA
 const SHEET_ID = "1YR4UNjOHT-AManewnSOEPxuR01kBVwXfgoCAjDsPeOw";
 const EXISTING_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("既存マシン")}`;
 const NEW_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("新マシン")}`;
+const EXTRA_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("追加マシン")}`;
 const CLEARANCE_CM = CUSTOM_CLEARANCE || 80;
 
 const CAT_MAP = {
@@ -608,9 +609,85 @@ function applyOverride(base, ov) {
   return merged;
 }
 
-function mergeCustomCatalog(machines, catalog) {
+function genreFromExtraSheet(raw) {
+  const s = String(raw || "").trim();
+  const map = {
+    スタック: "stack",
+    レジスタンス: "stack",
+    stack: "stack",
+    プレート: "plate",
+    PL: "plate",
+    plate: "plate",
+    フリーウェイト: "freeweight",
+    FW: "freeweight",
+    freeweight: "freeweight",
+    有酸素: "cardio",
+    cardio: "cardio",
+    HYROX: "hyrox",
+    hyrox: "hyrox",
+    ピラティス: "pilates",
+    pilates: "pilates",
+  };
+  return map[s] || "stack";
+}
+
+async function fetchExtraSheet() {
+  const res = await fetch(EXTRA_CSV, { redirect: "follow", cache: "no-store" });
+  if (!res.ok) return [];
+  const rows = parseCsv(await res.text());
+  if (!rows.length) return [];
+  const header = rows[0].map((h) => String(h || "").trim());
+  const idx = {};
+  header.forEach((h, i) => {
+    if (h && idx[h] == null) idx[h] = i;
+  });
+  const idI = idx["マシンID"];
+  const nameI = idx["名称"];
+  const wI = idx["幅_cm"];
+  const dI = idx["奥行_cm"];
+  if (idI == null || nameI == null || wI == null || dI == null) return [];
+  const out = [];
+  for (const r of rows.slice(1)) {
+    const id = String(r[idI] || "").trim();
+    const name = String(r[nameI] || "").trim();
+    const width_cm = Number(r[wI]);
+    const length_cm = Number(r[dI]);
+    if (!id || !name || !Number.isFinite(width_cm) || !Number.isFinite(length_cm)) continue;
+    if (width_cm < 10 || length_cm < 10) continue;
+    const genre = genreFromExtraSheet(idx["ジャンル"] != null ? r[idx["ジャンル"]] : "");
+    const sized = buildSized(width_cm, length_cm);
+    const kubun = idx["区分"] != null ? String(r[idx["区分"]] || "").trim() : "";
+    const qtyRaw = idx["台数"] != null ? Number(r[idx["台数"]]) : 1;
+    out.push({
+      id,
+      name,
+      brand: "",
+      model: "",
+      category: genre === "cardio" || genre === "hyrox" ? "cardio" : genre === "freeweight" ? "freeweight" : "resistance",
+      genre,
+      source: kubun === "既存" ? "existing" : "new",
+      qty: Number.isFinite(qtyRaw) && qtyRaw > 0 ? qtyRaw : 1,
+      sheet_qty: Number.isFinite(qtyRaw) ? qtyRaw : 1,
+      ...sized,
+      has_art: true,
+      status: "WEB追加",
+      link: idx["商品URL"] != null ? String(r[idx["商品URL"]] || "") : "",
+      note: idx["備考"] != null ? String(r[idx["備考"]] || "") : "",
+      planTarget: idx["図面対象"] != null ? String(r[idx["図面対象"]] || "YES") : "YES",
+      by: idx["登録者"] != null ? String(r[idx["登録者"]] || "") : "",
+      place_url: idx["place_url"] != null ? String(r[idx["place_url"]] || "") : "",
+      preview_url: idx["preview_url"] != null ? String(r[idx["preview_url"]] || "") : "",
+    });
+  }
+  return out;
+}
+
+function mergeCustomCatalog(machines, catalog, sheetExtras = []) {
   const overrides = catalog?.overrides && typeof catalog.overrides === "object" ? catalog.overrides : {};
-  const extras = Array.isArray(catalog?.extras) ? catalog.extras : [];
+  const extras = [
+    ...(Array.isArray(catalog?.extras) ? catalog.extras : []),
+    ...sheetExtras,
+  ];
   const used = new Set(machines.map((m) => m.id));
   let overrideCount = 0;
   const merged = machines.map((m) => {
@@ -660,10 +737,16 @@ export default async function handler(req, res) {
     }
     const baseMachines = [...existing, ...dumbbellAreas, ...curated, ...neu];
     const catalog = await readCustomCatalog();
-    const { machines, overrideCount, extraCount } = mergeCustomCatalog(baseMachines, catalog);
+    let sheetExtras = [];
+    try {
+      sheetExtras = await fetchExtraSheet();
+    } catch (err) {
+      console.warn("extra sheet fetch failed", err);
+    }
+    const { machines, overrideCount, extraCount } = mergeCustomCatalog(baseMachines, catalog, sheetExtras);
     return res.status(200).json({
       ok: true,
-      source: "sheet:既存+新マシン+ダンベルエリア+採用レジスタンス+WEB追加",
+      source: "sheet:既存+新マシン+ダンベルエリア+採用レジスタンス+追加マシン",
       syncedAt: new Date().toISOString(),
       count: machines.length,
       existingCount: existing.length + dumbbellAreas.length,

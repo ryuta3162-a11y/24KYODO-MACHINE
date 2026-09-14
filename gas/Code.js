@@ -3,6 +3,8 @@
  * ＋「新マシン」寸法検証・整理
  */
 var SHEET_ID = '1YR4UNjOHT-AManewnSOEPxuR01kBVwXfgoCAjDsPeOw';
+/** 共有キー。Sheets APIキーでは書けないため、GAS書き込みの合言葉として使う */
+var WRITE_KEY = '13KF93oRcK7Ru3gQicsIIoU9aJiM-zuB0DZzu2PrpnXhX0AHYzj49RR8I';
 var SHEET_NAME = '既存マシン';
 var NEW_SHEET_NAME = '新マシン';
 var EXTRA_SHEET_NAME = '追加マシン';
@@ -55,12 +57,14 @@ function doGet(e) {
       } catch (parseErr) {
         throw new Error('invalid payload');
       }
+      requireWriteKey_(e, payload);
       var upserted = upsertExtraMachine_(payload);
       return json_({
         ok: true,
         op: op,
         action: upserted.action,
         message: upserted.message,
+        verified: true,
         at: new Date().toISOString()
       });
     }
@@ -176,6 +180,13 @@ function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+function requireWriteKey_(e, body) {
+  var k = '';
+  if (e && e.parameter) k = String(e.parameter.k || e.parameter.key || '');
+  if (!k && body) k = String(body.k || body.key || '');
+  if (k !== WRITE_KEY) throw new Error('forbidden');
+}
+
 function doPost(e) {
   try {
     var body = {};
@@ -184,12 +195,14 @@ function doPost(e) {
     }
     var op = String((body && body.op) || (e && e.parameter && e.parameter.op) || '');
     if (op === 'upsert-extra-machine') {
+      requireWriteKey_(e, body);
       var upserted = upsertExtraMachine_(body.machine || body);
       return json_({
         ok: true,
         op: op,
         action: upserted.action,
         message: upserted.message,
+        verified: true,
         at: new Date().toISOString()
       });
     }
@@ -278,9 +291,12 @@ function upsertExtraMachine_(m) {
   setCell_('preview_url', String(m.preview_url || ''));
   setCell_('備考', String(m.note || ''));
   SpreadsheetApp.flush();
+  var writtenId = String(sh.getRange(row, idx['マシンID'] + 1).getDisplayValue() || '').trim();
+  if (writtenId !== id) throw new Error('verify failed: ' + writtenId);
   return {
     action: found ? 'updated' : 'appended',
-    message: (found ? 'updated ' : 'appended ') + id
+    message: (found ? 'updated ' : 'appended ') + id,
+    row: row
   };
 }
 

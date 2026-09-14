@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/machine-add.js": {
+      "maxDuration": 60
+    }
+  },
   "cleanUrls": true,
   "rewrites": [
     { "source": "/floorplan-app", "destination": "/floorplan-app/index.html" },

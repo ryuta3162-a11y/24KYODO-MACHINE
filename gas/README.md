@@ -1,7 +1,7 @@
 # Apps Script（clasp）
 
 経堂アイデアプールの「既存マシン」を JSON で返す Web App。
-WEB追加マシンは `?op=upsert-extra-machine&payload=...` で「追加マシン」シートへ upsert（失敗しても図面側の登録は止めない）。
+WEB追加マシンは `?op=upsert-extra-machine` で「追加マシン」へ upsert。セル再読込で確認してから成功を返す。図面側はシート成功後にだけ反映する。
 
 ## 操作（このPCでログイン済みの clasp）
 

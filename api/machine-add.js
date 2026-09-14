@@ -16,6 +16,9 @@ const GAS_UPSERT_URL =
   process.env.GAS_MACHINE_UPSERT_URL ||
   "https://script.google.com/macros/s/AKfycbw7L7epmdDMcrY2PooWjq3EUAkELSHMC6vj93-xLLZ_7RGJxOysAxlBxRyt9uCErxfO/exec";
 const APP_ORIGIN = String(process.env.APP_ORIGIN || "https://24kyodo-machine.vercel.app").replace(/\/$/, "");
+const SHEET_WRITE_KEY = process.env.SHEET_WRITE_KEY || "13KF93oRcK7Ru3gQicsIIoU9aJiM-zuB0DZzu2PrpnXhX0AHYzj49RR8I";
+
+export const config = { maxDuration: 60 };
 
 function absUrl(path) {
   const value = String(path || "");
@@ -24,8 +27,11 @@ function absUrl(path) {
   return `${APP_ORIGIN}${value.startsWith("/") ? value : `/${value}`}`;
 }
 
-async function syncExtraToSheet(machine) {
-  if (!String(machine?.id || "").startsWith("extra_")) return { ok: true, skipped: true };
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function attemptSheetUpsert(machine) {
   const payload = {
     id: machine.id,
     name: machine.name,
@@ -43,11 +49,12 @@ async function syncExtraToSheet(machine) {
   };
   const url = new URL(GAS_UPSERT_URL);
   url.searchParams.set("op", "upsert-extra-machine");
+  url.searchParams.set("k", SHEET_WRITE_KEY);
   url.searchParams.set("payload", JSON.stringify(payload));
   const res = await fetch(url.toString(), {
     method: "GET",
     redirect: "follow",
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(20000),
   });
   const text = await res.text();
   let json = null;
@@ -56,11 +63,26 @@ async function syncExtraToSheet(machine) {
   } catch {
     json = null;
   }
-  if (!res.ok || !json?.ok || json.op !== "upsert-extra-machine") {
-    console.warn("sheet sync failed", res.status, String(text).slice(0, 400));
-    return { ok: false };
+  if (!res.ok || !json?.ok || json.op !== "upsert-extra-machine" || json.verified !== true) {
+    throw new Error(json?.error || `sheet write rejected (${res.status})`);
   }
-  return { ok: true, action: json.action };
+  return json;
+}
+
+async function syncExtraToSheetRequired(machine) {
+  if (!String(machine?.id || "").startsWith("extra_")) return { ok: true, skipped: true };
+  let lastErr = "sheet write failed";
+  for (let i = 0; i < 4; i++) {
+    if (i) await sleep(2000 * i);
+    try {
+      const json = await attemptSheetUpsert(machine);
+      return { ok: true, action: json.action };
+    } catch (err) {
+      lastErr = err?.message || String(err);
+      console.warn("sheet write retry", i + 1, lastErr);
+    }
+  }
+  throw new Error(`スプレッドシートに保存できませんでした: ${lastErr}`);
 }
 
 function bad(res, code, message) {
@@ -210,20 +232,12 @@ export default async function handler(req, res) {
       }
     }
 
+    await syncExtraToSheetRequired(machine);
     await writeCustomCatalog(catalog);
-
-    let sheetOk = true;
-    try {
-      const sync = await syncExtraToSheet(machine);
-      sheetOk = !!sync.ok;
-    } catch (syncErr) {
-      console.warn("sheet sync error", syncErr);
-      sheetOk = false;
-    }
 
     return res.status(200).json({
       ok: true,
-      sheetWarning: !sheetOk,
+      sheetSaved: true,
       machine,
     });
   } catch (err) {
