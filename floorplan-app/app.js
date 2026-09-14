@@ -401,10 +401,17 @@ function itemClearance(machine, item) {
 
 function itemBodySize(machine, item) {
   const clear = itemClearance(machine, item);
-  const mw = machine?.place_px_w || item?.place_px_w || 200;
-  const mh = machine?.place_px_h || item?.place_px_h || 200;
-  const bw = machine?.width_cm || Math.max(20, mw - clear * 2);
-  const bh = machine?.length_cm || Math.max(20, mh - clear * 2);
+  // カタログ（変更後）の寸法を最優先。配置時に保存した place_px_* はフォールバックのみ
+  const bw = Number(machine?.width_cm) || Math.max(20, (Number(item?.place_px_w) || 200) - clear * 2);
+  const bh = Number(machine?.length_cm) || Math.max(20, (Number(item?.place_px_h) || 200) - clear * 2);
+  const mw =
+    Number(machine?.place_px_w) ||
+    Number(machine?.module_width_cm) ||
+    bw + clear * 2;
+  const mh =
+    Number(machine?.place_px_h) ||
+    Number(machine?.module_length_cm) ||
+    bh + clear * 2;
   return { bw, bh, clear, mw, mh };
 }
 
@@ -443,6 +450,50 @@ function restorePlacementCenters(snaps) {
     it.y = s.cy - bh / 2;
     clampItem(it, m);
   }
+}
+
+/** 変更後のカタログ寸法を、図面上の同IDマシンへ即反映（見た目の大きさ更新） */
+function syncPlacedItemsToCatalog(machineId) {
+  const m = findMachine(machineId);
+  if (!m || !machineId) return 0;
+  let n = 0;
+  for (const it of state.items) {
+    if (it.id !== machineId) continue;
+    it.place_px_w = m.place_px_w;
+    it.place_px_h = m.place_px_h;
+    it.clearance_cm = m.clearance_cm || DEFAULT_CLEARANCE_CM;
+    n += 1;
+  }
+  return n;
+}
+
+function normalizeCatalogMachine(m) {
+  return {
+    ...m,
+    source: m.source === "new" ? "new" : "existing",
+    genre: m.genre || (m.category === "cardio" ? "cardio" : m.category === "freeweight" ? "freeweight" : "stack"),
+    has_art: m.has_art !== false && (!!m.place_url || !!m.place_file),
+    overridden: !!m.overridden || m.status === "寸法上書き",
+    place_px_w: m.place_px_w || m.module_width_cm || m.width_cm + DEFAULT_CLEARANCE_CM * 2,
+    place_px_h: m.place_px_h || m.module_length_cm || m.length_cm + DEFAULT_CLEARANCE_CM * 2,
+    module_width_cm: m.module_width_cm || m.width_cm + DEFAULT_CLEARANCE_CM * 2,
+    module_length_cm: m.module_length_cm || m.length_cm + DEFAULT_CLEARANCE_CM * 2,
+    place_file: m.place_file || (m.source === "new" ? "" : `${m.id}_place.png`),
+    preview_file: m.preview_file || (m.source === "new" ? "" : `${m.id}_preview.png`),
+    place_url: m.place_url || "",
+    preview_url: m.preview_url || "",
+    link: m.link || "",
+  };
+}
+
+/** API応答を待たずにカタログを先に更新（即時に図面サイズを変える） */
+function upsertCatalogMachine(machine) {
+  if (!machine?.id) return null;
+  const mapped = normalizeCatalogMachine(machine);
+  const i = state.catalog.findIndex((m) => m.id === mapped.id);
+  if (i >= 0) state.catalog[i] = { ...state.catalog[i], ...mapped, overridden: true };
+  else state.catalog.unshift(mapped);
+  return state.catalog.find((m) => m.id === mapped.id) || mapped;
 }
 
 function itemEdges(item, machine) {
@@ -2915,7 +2966,12 @@ async function exportPng() {
 }
 
 function flash(msg) {
-  el.statusSel.textContent = msg;
+  if (el.statusSel) el.statusSel.textContent = msg;
+}
+
+function showEditSuccessToast(message) {
+  showSaveToast(message);
+  flash(message);
 }
 
 function rotateSelected() {
@@ -3216,28 +3272,43 @@ async function submitAddMachine(e) {
     }
     if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
     closeAddMachineModal();
+
+    const machineId = json.machine?.id || editId;
+    // 先に中心を記録 → カタログ反映 → 同位置に最適サイズで置き直し
     const centers = isEdit ? snapshotPlacementCenters() : null;
-    await loadCatalog();
+    if (json.machine) upsertCatalogMachine(json.machine);
+    if (isEdit && machineId) syncPlacedItemsToCatalog(machineId);
     if (centers) restorePlacementCenters(centers);
-    if (isEdit && json.machine) {
-      state.source = json.machine.source === "existing" ? "existing" : "new";
-      state.filter = json.machine.genre || state.filter;
-      el.sourceFilters?.querySelectorAll(".chip").forEach((c) => {
-        c.classList.toggle("active", c.dataset.source === state.source);
-      });
-      el.filters?.querySelectorAll(".chip").forEach((c) => {
-        c.classList.toggle("active", c.dataset.genre === state.filter);
-      });
+
+    // バックグラウンドで最新カタログも取り直す（失敗してもローカル反映は維持）
+    try {
+      await loadCatalog();
+      if (json.machine) upsertCatalogMachine(json.machine);
+      if (isEdit && machineId) {
+        syncPlacedItemsToCatalog(machineId);
+        if (centers) restorePlacementCenters(centers);
+      }
+    } catch (err) {
+      console.warn("catalog refresh after edit failed", err);
     }
-    state.paletteFocusId = json.machine?.id || editId || state.paletteFocusId;
+
+    if (isEdit && machineId) {
+      const kept = state.items.filter((it) => it.id === machineId && !it.hidden);
+      if (kept.length) state.selectedUids = new Set(kept.map((it) => it.uid));
+    }
+    state.paletteFocusId = machineId || state.paletteFocusId;
     renderPalette();
     renderMachines();
-    if (isEdit) markDirty();
+    if (isEdit) markDirty({ immediate: true });
     updateChrome();
-    if (json.sheetWarning) {
-      flash(isEdit ? "変更を反映（配置維持・中心固定）" : "追加しました（スプシ同期は遅延の可能性）");
+
+    if (isEdit) {
+      const msg = `サイズを変更しました（${width_cm}×${length_cm}cm・配置維持）`;
+      showEditSuccessToast(msg);
+    } else if (json.sheetWarning) {
+      showEditSuccessToast(`追加しました: ${json.machine?.name || name}`);
     } else {
-      flash(isEdit ? `変更しました（配置維持）: ${json.machine?.name || name}` : `追加しました: ${json.machine?.name || name}`);
+      showEditSuccessToast(`追加しました: ${json.machine?.name || name}`);
     }
   } catch (err) {
     console.error(err);
@@ -3257,22 +3328,7 @@ async function loadCatalog() {
     const res = await fetch(`${MACHINES_API}?t=${Date.now()}`, { cache: "no-store" });
     const json = await res.json();
     if (res.ok && json.ok && Array.isArray(json.machines) && json.machines.length) {
-      state.catalog = json.machines.map((m) => ({
-        ...m,
-        source: m.source === "new" ? "new" : "existing",
-        genre: m.genre || (m.category === "cardio" ? "cardio" : m.category === "freeweight" ? "freeweight" : "stack"),
-        has_art: m.has_art !== false && (!!m.place_url || !!m.place_file),
-        overridden: !!m.overridden,
-        place_px_w: m.place_px_w || m.module_width_cm || m.width_cm + DEFAULT_CLEARANCE_CM * 2,
-        place_px_h: m.place_px_h || m.module_length_cm || m.length_cm + DEFAULT_CLEARANCE_CM * 2,
-        module_width_cm: m.module_width_cm || m.width_cm + DEFAULT_CLEARANCE_CM * 2,
-        module_length_cm: m.module_length_cm || m.length_cm + DEFAULT_CLEARANCE_CM * 2,
-        place_file: m.place_file || (m.source === "new" ? "" : `${m.id}_place.png`),
-        preview_file: m.preview_file || (m.source === "new" ? "" : `${m.id}_preview.png`),
-        place_url: m.place_url || "",
-        preview_url: m.preview_url || "",
-        link: m.link || "",
-      }));
+      state.catalog = json.machines.map((m) => normalizeCatalogMachine(m));
       return {
         source: "sheet",
         count: state.catalog.length,
