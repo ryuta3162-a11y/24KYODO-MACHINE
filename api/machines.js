@@ -558,7 +558,8 @@ async function fetchNew(used) {
 function cors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
-  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+  // WEB追加・寸法上書きを即反映するため CDN 長キャッシュしない
+  res.setHeader("Cache-Control", "no-store");
 }
 
 function applyOverride(base, ov) {
