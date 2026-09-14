@@ -31,12 +31,30 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function postGasJson(body) {
+  const init = {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(body),
+    redirect: "manual",
+    signal: AbortSignal.timeout(20000),
+  };
+  let res = await fetch(GAS_UPSERT_URL, init);
+  if (res.status >= 300 && res.status < 400) {
+    const loc = res.headers.get("location");
+    if (loc) {
+      res = await fetch(loc, { ...init, redirect: "follow" });
+    }
+  }
+  return res;
+}
+
 async function attemptSheetUpsert(machine) {
   const payload = {
     id: machine.id,
     name: machine.name,
-    link: machine.link,
-    note: machine.note,
+    link: String(machine.link || "").slice(0, 180),
+    note: String(machine.note || "").slice(0, 80),
     by: machine.by,
     width_cm: machine.width_cm,
     length_cm: machine.length_cm,
@@ -44,24 +62,33 @@ async function attemptSheetUpsert(machine) {
     source: machine.source,
     genre: machine.genre,
     planTarget: machine.planTarget || "YES",
-    place_url: absUrl(machine.place_url),
-    preview_url: absUrl(machine.preview_url),
+    place_url: absUrl(machine.place_url).replace(/&v=[^&]+/g, ""),
+    preview_url: absUrl(machine.preview_url).replace(/&v=[^&]+/g, ""),
   };
   const url = new URL(GAS_UPSERT_URL);
   url.searchParams.set("op", "upsert-extra-machine");
   url.searchParams.set("k", SHEET_WRITE_KEY);
   url.searchParams.set("payload", JSON.stringify(payload));
-  const res = await fetch(url.toString(), {
+  let res = await fetch(url.toString(), {
     method: "GET",
     redirect: "follow",
     signal: AbortSignal.timeout(20000),
   });
-  const text = await res.text();
+  let text = await res.text();
   let json = null;
   try {
     json = JSON.parse(text);
   } catch {
     json = null;
+  }
+  if (!res.ok || !json?.ok || json.op !== "upsert-extra-machine" || json.verified !== true) {
+    res = await postGasJson({ op: "upsert-extra-machine", k: SHEET_WRITE_KEY, key: SHEET_WRITE_KEY, ...payload });
+    text = await res.text();
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
   }
   if (!res.ok || !json?.ok || json.op !== "upsert-extra-machine" || json.verified !== true) {
     throw new Error(json?.error || `sheet write rejected (${res.status})`);

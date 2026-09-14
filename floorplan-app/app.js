@@ -333,8 +333,18 @@ function findMachine(id) {
   return state.catalog.find((m) => m.id === id);
 }
 
+function isSheetBackedExtra(id) {
+  return String(id || "").startsWith("extra_");
+}
+
+function itemOnFloor(item) {
+  if (!item || item.hidden) return false;
+  if (!isSheetBackedExtra(item.id)) return true;
+  return !!findMachine(item.id);
+}
+
 function placedCount(id) {
-  const here = state.items.filter((i) => i.id === id && !i.hidden).length;
+  const here = state.items.filter((i) => i.id === id && itemOnFloor(i)).length;
   const peer = Number(state.peerCounts?.[id]) || 0;
   return here + peer;
 }
@@ -925,7 +935,7 @@ function editableMachineId() {
 
 function renderPalette() {
   const q = state.query.trim().toLowerCase();
-  const placedIds = new Set(state.items.filter((i) => !i.hidden).map((i) => i.id));
+  const placedIds = new Set(state.items.filter((i) => itemOnFloor(i)).map((i) => i.id));
   const list = state.catalog.filter((m) => {
     const rem = remainingOf(m.id);
     const onFloor = placedIds.has(m.id);
@@ -1012,7 +1022,7 @@ function renderPalette() {
       if (!m) return;
       state.paletteFocusId = m.id;
       // 図面上の同IDを選択（変更しやすく）
-      const onFloor = state.items.filter((i) => i.id === m.id && !i.hidden);
+      const onFloor = state.items.filter((i) => i.id === m.id && itemOnFloor(i));
       if (onFloor.length) {
         state.selectedUids = new Set(onFloor.map((i) => i.uid));
         state.selectedZoneUids = new Set();
@@ -1161,6 +1171,7 @@ function drawDimOverlayOnCanvas(ctx, drawW, drawH) {
 function renderMachines() {
   el.layer.innerHTML = "";
   for (const item of state.items) {
+    if (isSheetBackedExtra(item.id) && !findMachine(item.id)) continue;
     const m = findMachine(item.id);
     const size = itemSize(item, m || {});
     const body = size.body || itemBodySize(m, item);
@@ -1855,7 +1866,7 @@ function selectedItems() {
 }
 
 function updateChrome() {
-  const n = state.items.filter((i) => !i.hidden).length;
+  const n = state.items.filter((i) => itemOnFloor(i)).length;
   const zc = state.zones.length;
   el.statusCount.textContent = zc ? `${n}台 / ゾーン${zc}` : `${n}`;
   const sels = selectedItems();

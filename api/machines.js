@@ -684,10 +684,9 @@ async function fetchExtraSheet() {
 
 function mergeCustomCatalog(machines, catalog, sheetExtras = []) {
   const overrides = catalog?.overrides && typeof catalog.overrides === "object" ? catalog.overrides : {};
-  const extras = [
-    ...(Array.isArray(catalog?.extras) ? catalog.extras : []),
-    ...sheetExtras,
-  ];
+  const blobById = Object.fromEntries(
+    (Array.isArray(catalog?.extras) ? catalog.extras : []).filter((x) => x?.id).map((x) => [x.id, x])
+  );
   const used = new Set(machines.map((m) => m.id));
   let overrideCount = 0;
   const merged = machines.map((m) => {
@@ -697,19 +696,25 @@ function mergeCustomCatalog(machines, catalog, sheetExtras = []) {
     return applyOverride(m, ov);
   });
   const extraMachines = [];
-  for (const ex of extras) {
+  for (const ex of sheetExtras) {
     if (!ex?.id || used.has(ex.id)) continue;
     used.add(ex.id);
+    const blob = blobById[ex.id] || {};
     extraMachines.push(
       withArtUrls(
         {
+          ...blob,
           ...ex,
-          status: ex.status || "WEB追加",
-          has_art: ex.has_art !== false,
-          place_url: ex.place_url || "",
-          preview_url: ex.preview_url || "",
+          status: "WEB追加",
+          has_art: true,
+          place_file: blob.place_file || ex.place_file || "",
+          preview_file: blob.preview_file || ex.preview_file || "",
+          place_path: blob.place_path || ex.place_path || "",
+          preview_path: blob.preview_path || ex.preview_path || "",
+          place_url: blob.place_url || ex.place_url || "",
+          preview_url: blob.preview_url || ex.preview_url || "",
         },
-        ex.updatedAt || Date.now()
+        blob.updatedAt || Date.now()
       )
     );
   }
