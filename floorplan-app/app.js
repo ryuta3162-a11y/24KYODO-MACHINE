@@ -4,14 +4,41 @@
  */
 const ROOMS = {
   "kyodo-2f": {
-    title: "経堂 2F",
+    title: "経堂 2F A",
+    w: 3388,
+    h: 2058,
+    floor: "../floorplan/floor_2f.jpg",
+  },
+  "kyodo-2f-b": {
+    title: "経堂 2F B",
+    w: 3388,
+    h: 2058,
+    floor: "../floorplan/floor_2f.jpg",
+  },
+  "kyodo-2f-c": {
+    title: "経堂 2F C",
     w: 3388,
     h: 2058,
     floor: "../floorplan/floor_2f.jpg",
   },
   "kyodo-3f": {
-    title: "経堂 3F",
-    // v7高画質（中央揃え余白つき）。グリッドを正方形補正し 1px=1cm
+    title: "経堂 3F A",
+    w: 2313,
+    h: 1438,
+    floor: "../floorplan/floor_3f.jpg",
+    labeledCm: { w: 1960, h: 1140 },
+    gridCm: 20,
+  },
+  "kyodo-3f-b": {
+    title: "経堂 3F B",
+    w: 2313,
+    h: 1438,
+    floor: "../floorplan/floor_3f.jpg",
+    labeledCm: { w: 1960, h: 1140 },
+    gridCm: 20,
+  },
+  "kyodo-3f-c": {
+    title: "経堂 3F C",
     w: 2313,
     h: 1438,
     floor: "../floorplan/floor_3f.jpg",
@@ -25,6 +52,28 @@ let PLAN_H = ROOMS[DEFAULT_ROOM].h;
 const AUTHOR_KEY = "kyodo-floorplan-author";
 const PLACE_BASE = "../floorplan/machines/place/";
 const PREVIEW_BASE = "../floorplan/machines/preview/";
+const MACHINE_ADD_API = "/api/machine-add";
+
+function withArtVer(url) {
+  if (!url) return "";
+  return `${url}${url.includes("?") ? "&" : "?"}v=${ART_VER}`;
+}
+
+function machinePreviewUrl(m) {
+  if (m?.preview_url) return withArtVer(m.preview_url);
+  if (m?.has_art !== false && m?.preview_file) {
+    return `${encodeURI(PREVIEW_BASE + m.preview_file)}?v=${ART_VER}`;
+  }
+  return "";
+}
+
+function machinePlaceUrl(m) {
+  if (m?.place_url) return withArtVer(m.place_url);
+  if (m?.has_art !== false && m?.place_file) {
+    return `${encodeURI(PLACE_BASE + m.place_file)}?v=${ART_VER}`;
+  }
+  return "";
+}
 /** 画像差し替え時にブラウザ/CDNキャッシュを切る */
 const ART_VER = "20260914cat";
 const CSV_URL = "../floorplan/machines.csv";
@@ -97,6 +146,8 @@ const state = {
   saveStatus: "saved", // saved | dirty | saving | conflict | error
   conflictPending: false,
   conflictServerData: null,
+  /** パレットでフォーカス中のマシンID（変更用） */
+  paletteFocusId: null,
 };
 
 const el = {
@@ -134,20 +185,40 @@ const el = {
   btnZoneFlipY: document.getElementById("btn-zone-flip-y"),
   btnRotate: document.getElementById("btn-rotate"),
   btnLock: document.getElementById("btn-lock"),
+  btnEditMachine: document.getElementById("btn-edit-machine"),
   btnSave: document.getElementById("btn-save"),
+  btnAddMachine: document.getElementById("btn-add-machine"),
+  addMachineModal: document.getElementById("add-machine-modal"),
+  addMachineForm: document.getElementById("add-machine-form"),
+  addMachineCancel: document.getElementById("add-machine-cancel"),
+  addMachineImage: document.getElementById("add-machine-image"),
+  addMachinePreview: document.getElementById("add-machine-preview"),
+  addMachineTitle: document.getElementById("add-machine-title"),
+  addMachineLead: document.getElementById("add-machine-lead"),
+  addMachineEditId: document.getElementById("add-machine-edit-id"),
+  addMachineImageReq: document.getElementById("add-machine-image-req"),
+  addMachineImageHint: document.getElementById("add-machine-image-hint"),
+  addMachineSubmit: document.getElementById("add-machine-submit"),
 };
 
 function uid() {
   return crypto.randomUUID();
 }
 
-function roomFromUrl() {
-  const q = new URLSearchParams(location.search).get("room");
-  const id = String(q || DEFAULT_ROOM)
+function normalizeRoomId(raw) {
+  let id = String(raw || "")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9_-]/g, "")
     .slice(0, 48);
+  if (id === "kyodo-2f-a") id = "kyodo-2f";
+  if (id === "kyodo-3f-a") id = "kyodo-3f";
+  return id;
+}
+
+function roomFromUrl() {
+  const q = new URLSearchParams(location.search).get("room");
+  const id = normalizeRoomId(q || DEFAULT_ROOM);
   return ROOMS[id] ? id : DEFAULT_ROOM;
 }
 
@@ -275,7 +346,7 @@ function canPlaceMore(id, n = 1) {
   return remainingOf(id) >= n;
 }
 
-/** 他フロアの配置台数を取得（館内の残り台数を合わせる） */
+/** 同じフロアの他パターン＋別フロア全パターンの配置台数（残数は館内合算） */
 async function refreshPeerCounts() {
   const counts = {};
   const rooms = Object.keys(ROOMS).filter((id) => id !== state.roomId);
@@ -349,6 +420,29 @@ function clampItem(item, machine) {
   const { bw, bh } = itemSize(item, machine || {});
   item.x = Math.min(Math.max(0, item.x), PLAN_W - bw);
   item.y = Math.min(Math.max(0, item.y), PLAN_H - bh);
+}
+
+/** 寸法変更後も配置の中心を維持（左上基準で伸びてズレるのを防ぐ） */
+function snapshotPlacementCenters() {
+  return state.items.map((it) => {
+    const m = findMachine(it.id);
+    const { bw, bh } = itemSize(it, m);
+    return { uid: it.uid, id: it.id, cx: it.x + bw / 2, cy: it.y + bh / 2 };
+  });
+}
+
+function restorePlacementCenters(snaps) {
+  if (!Array.isArray(snaps) || !snaps.length) return;
+  for (const s of snaps) {
+    const it = state.items.find((i) => i.uid === s.uid);
+    if (!it) continue;
+    const m = findMachine(it.id);
+    if (!m) continue;
+    const { bw, bh } = itemSize(it, m);
+    it.x = s.cx - bw / 2;
+    it.y = s.cy - bh / 2;
+    clampItem(it, m);
+  }
 }
 
 function itemEdges(item, machine) {
@@ -759,13 +853,34 @@ function machineSource(m) {
   return m?.source === "new" ? "new" : "existing";
 }
 
+function isWebExtra(m) {
+  return String(m?.id || "").startsWith("extra_") || m?.status === "WEB追加";
+}
+
+/** 変更対象ID: 図面上で1台選択 > パレットフォーカス */
+function editableMachineId() {
+  const sels = selectedItems();
+  if (sels.length === 1) return sels[0].id;
+  if (state.paletteFocusId && findMachine(state.paletteFocusId)) return state.paletteFocusId;
+  return null;
+}
+
 function renderPalette() {
   const q = state.query.trim().toLowerCase();
+  const placedIds = new Set(state.items.filter((i) => !i.hidden).map((i) => i.id));
   const list = state.catalog.filter((m) => {
-    if (remainingOf(m.id) <= 0) return false;
+    const rem = remainingOf(m.id);
+    const onFloor = placedIds.has(m.id);
+    // 残0でも図面に置いてある機種は一覧に残す（寸法変更後に消えて見えない対策）
+    if (rem <= 0 && !onFloor) return false;
+    if (state.filter === "web") return isWebExtra(m);
     // 専用カテゴリは既存/新規タブをまたいで表示し、空の一覧にしない。
-    if (!["pilates", "hyrox"].includes(state.filter) && machineSource(m) !== state.source) return false;
-    if (state.filter !== "all" && machineGenre(m) !== state.filter) return false;
+    if (!["pilates", "hyrox", "web"].includes(state.filter) && machineSource(m) !== state.source) {
+      return false;
+    }
+    if (state.filter !== "all" && state.filter !== "web" && machineGenre(m) !== state.filter) {
+      return false;
+    }
     if (!q) return true;
     return (
       m.name.toLowerCase().includes(q) ||
@@ -773,19 +888,43 @@ function renderPalette() {
       String(m.zone || "").toLowerCase().includes(q)
     );
   });
+  // WEB追加・編集済を先頭、図面にあるものを優先
+  list.sort((a, b) => {
+    const score = (m) =>
+      (isWebExtra(m) ? 4 : 0) + (m.overridden ? 2 : 0) + (placedIds.has(m.id) ? 1 : 0);
+    return score(b) - score(a);
+  });
+
+  if (!list.length) {
+    el.palette.innerHTML = `<div class="palette-empty">該当マシンがありません。<br/>「すべて」を選ぶか、検索してください。</div>`;
+    return;
+  }
+
   el.palette.innerHTML = list
     .map((m) => {
       const rem = remainingOf(m.id);
+      const onFloor = placedIds.has(m.id);
       const g = GENRE_LABEL[machineGenre(m)] || "";
-      const thumb = m.has_art && m.preview_file
-        ? `<img src="${encodeURI(PREVIEW_BASE + m.preview_file)}?v=${ART_VER}" alt="" loading="lazy" />`
+      const prev = machinePreviewUrl(m);
+      const thumb = prev
+        ? `<img src="${escapeHtml(prev)}" alt="" loading="lazy" />`
         : `<div class="card-ph">${escapeHtml(g || "新規")}</div>`;
       const qtyLabel =
-        m.source === "new" && m.sheet_qty === 0
-          ? `検討用 · ${m.width_cm}×${m.length_cm}`
-          : `${m.module_width_cm}×${m.module_length_cm} · 残り ${rem}/${m.qty}（全館）`;
+        rem <= 0 && onFloor
+          ? `${m.width_cm}×${m.length_cm} · 配置済（変更可）`
+          : m.source === "new" && m.sheet_qty === 0
+            ? `検討用 · ${m.width_cm}×${m.length_cm}`
+            : `${m.width_cm}×${m.length_cm}（区画${m.module_width_cm}×${m.module_length_cm}）· 残 ${rem}/${m.qty}`;
+      const badge = isWebExtra(m)
+        ? `<span class="card-badge">WEB</span>`
+        : m.overridden
+          ? `<span class="card-badge is-edit">編集済</span>`
+          : "";
+      const focused = state.paletteFocusId === m.id ? " is-focused" : "";
+      const exhausted = rem <= 0 ? " is-exhausted" : "";
       return `
-      <div class="card" draggable="true" data-id="${m.id}">
+      <div class="card${isWebExtra(m) ? " is-web-extra" : ""}${m.overridden ? " is-overridden" : ""}${focused}${exhausted}" draggable="${rem > 0 ? "true" : "false"}" data-id="${m.id}">
+        ${badge}
         ${thumb}
         <div class="meta">
           <div class="name">${escapeHtml(m.name)}</div>
@@ -806,16 +945,29 @@ function renderPalette() {
       e.dataTransfer.setData("text/machine-id", card.dataset.id);
       e.dataTransfer.effectAllowed = "copy";
     });
-    card.addEventListener("click", () => {
+    card.addEventListener("click", (ev) => {
       if (dragged) {
         dragged = false;
         return;
       }
       const m = findMachine(card.dataset.id);
       if (!m) return;
+      state.paletteFocusId = m.id;
+      // 図面上の同IDを選択（変更しやすく）
+      const onFloor = state.items.filter((i) => i.id === m.id && !i.hidden);
+      if (onFloor.length) {
+        state.selectedUids = new Set(onFloor.map((i) => i.uid));
+        state.selectedZoneUids = new Set();
+        renderMachines();
+      }
+      updateChrome();
+      renderPalette();
+      if (ev.altKey) {
+        openEditMachineModal(m.id);
+        return;
+      }
       if (!canPlaceMore(m.id)) {
-        flash("残0");
-        renderPalette();
+        flash("配置済です。上の「変更」で寸法・内容を編集できます");
         return;
       }
       placeMachine(m.id, PLAN_W / 2 - m.place_px_w / 2, PLAN_H / 2 - m.place_px_h / 2);
@@ -986,14 +1138,14 @@ function renderMachines() {
     if (m) {
       const drawW = item.trimmed ? body.bw : body.mw;
       const drawH = item.trimmed ? body.bh : body.mh;
-      const useArt = m.has_art !== false && m.place_file;
+      const artUrl = machinePlaceUrl(m);
+      const useArt = !!artUrl;
       const label = document.createElement("span");
       label.className = "machine-label";
       label.textContent = m.name;
 
       if (useArt) {
         // 写真は本体サイズのみ。80cm(4マス)クリアランスは線枠で表現（有酸素と同じ考え方）
-        const artUrl = `${encodeURI(`${PLACE_BASE}${m.place_file}`)}?v=${ART_VER}`;
         node.classList.add("photo-bg");
         if (!item.trimmed) node.classList.add("with-clearance");
 
@@ -1649,6 +1801,13 @@ function updateChrome() {
       ? "選択中の位置固定を解除"
       : "選択中の位置を固定（動かない）";
     el.btnLock.classList.toggle("is-locked", allLocked);
+  }
+  if (el.btnEditMachine) {
+    const editId = editableMachineId();
+    el.btnEditMachine.disabled = !editId;
+    el.btnEditMachine.title = editId
+      ? `「${findMachine(editId)?.name || editId}」のサイズ・内容を変更（配置は維持）`
+      : "マシンを1台選択（またはパレットをクリック）して変更";
   }
   if (el.btnZoneVertical) el.btnZoneVertical.disabled = !hasZone;
   if (el.btnZoneFlipX) el.btnZoneFlipX.disabled = !hasZone;
@@ -2551,14 +2710,15 @@ async function exportPng() {
     const drawH = item.trimmed ? body.bh : body.mh;
     const cx = item.x + drawW / 2;
     const cy = item.y + drawH / 2;
-    const useArt = m.has_art !== false && m.place_file;
+    const artUrl = machinePlaceUrl(m);
+    const useArt = !!artUrl;
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(((item.rot || 0) * Math.PI) / 180);
     if (useArt) {
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = `${PLACE_BASE}${m.place_file}?v=${ART_VER}`;
+      img.src = artUrl;
       await img.decode().catch(() => {});
       // 外側＝区画（線）、写真＝本体サイズのみ中央
       ctx.strokeStyle = "#111111";
@@ -2750,23 +2910,222 @@ function pasteClipboard(source = state.clipboard, dx = 40, dy = 40) {
   flash(skipped ? `貼付 ${created.length} 残不足${skipped}` : `貼付 ${created.length}`);
 }
 
+function setMachineModalMode(mode, machine = null) {
+  const isEdit = mode === "edit";
+  if (el.addMachineTitle) el.addMachineTitle.textContent = isEdit ? "マシン変更" : "マシン追加";
+  if (el.addMachineLead) {
+    el.addMachineLead.textContent = isEdit
+      ? "IDはそのまま。配置済みマシンは消えず、サイズ・名称などが更新されます。"
+      : "スプレッドシート「追加マシン」に保存され、すぐ配置一覧に反映されます。";
+  }
+  if (el.addMachineEditId) el.addMachineEditId.value = isEdit ? machine?.id || "" : "";
+  if (el.addMachineImage) el.addMachineImage.required = !isEdit;
+  if (el.addMachineImageReq) el.addMachineImageReq.hidden = isEdit;
+  if (el.addMachineImageHint) el.addMachineImageHint.hidden = !isEdit;
+  if (el.addMachineSubmit) el.addMachineSubmit.textContent = isEdit ? "変更を保存" : "登録する";
+  if (el.addMachineForm && isEdit && machine) {
+    el.addMachineForm.querySelector('[name="name"]').value = machine.name || "";
+    el.addMachineForm.querySelector('[name="link"]').value = machine.link || "";
+    el.addMachineForm.querySelector('[name="width_cm"]').value = machine.width_cm || "";
+    el.addMachineForm.querySelector('[name="length_cm"]').value = machine.length_cm || "";
+    el.addMachineForm.querySelector('[name="qty"]').value = machine.qty || 1;
+    el.addMachineForm.querySelector('[name="source"]').value =
+      machine.source === "existing" ? "existing" : "new";
+    el.addMachineForm.querySelector('[name="genre"]').value = machineGenre(machine) || "stack";
+    el.addMachineForm.querySelector('[name="note"]').value = machine.note || "";
+  }
+  const byInput = el.addMachineForm?.querySelector("#add-machine-by");
+  if (byInput) byInput.value = authorName();
+  if (el.addMachinePreview) {
+    const prev = machine ? machinePreviewUrl(machine) : "";
+    if (prev) {
+      el.addMachinePreview.hidden = false;
+      el.addMachinePreview.src = prev;
+    } else {
+      el.addMachinePreview.hidden = true;
+      el.addMachinePreview.removeAttribute("src");
+    }
+  }
+}
+
+function openAddMachineModal() {
+  if (!el.addMachineModal) return;
+  el.addMachineForm?.reset();
+  setMachineModalMode("create");
+  el.addMachineModal.hidden = false;
+}
+
+function openEditMachineModal(machineId) {
+  const id = machineId || editableMachineId();
+  const m = findMachine(id);
+  if (!m) {
+    flash("変更するマシンを選んでください");
+    return;
+  }
+  if (!el.addMachineModal) return;
+  el.addMachineForm?.reset();
+  setMachineModalMode("edit", m);
+  el.addMachineModal.hidden = false;
+}
+
+function closeAddMachineModal() {
+  if (el.addMachineModal) el.addMachineModal.hidden = true;
+  el.addMachineForm?.reset();
+  if (el.addMachineEditId) el.addMachineEditId.value = "";
+  if (el.addMachineImage) el.addMachineImage.required = true;
+  if (el.addMachinePreview) {
+    el.addMachinePreview.hidden = true;
+    el.addMachinePreview.removeAttribute("src");
+  }
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("read failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Canva等の大画像を縮小して API ボディ制限内に収める */
+async function compressImageForUpload(file) {
+  const maxSide = 1400;
+  const maxBytes = 2.5 * 1024 * 1024;
+  if (file.size <= maxBytes && file.size < 1.5 * 1024 * 1024) {
+    return readFileAsBase64(file);
+  }
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const w = Math.max(1, Math.round(bitmap.width * scale));
+  const h = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#eceef1";
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close?.();
+  let quality = 0.85;
+  let dataUrl = canvas.toDataURL("image/jpeg", quality);
+  while (dataUrl.length > maxBytes * 1.37 && quality > 0.45) {
+    quality -= 0.1;
+    dataUrl = canvas.toDataURL("image/jpeg", quality);
+  }
+  return dataUrl;
+}
+
+async function submitAddMachine(e) {
+  e.preventDefault();
+  const form = el.addMachineForm;
+  if (!form) return;
+  const fd = new FormData(form);
+  const editId = String(fd.get("edit_id") || "").trim();
+  const isEdit = !!editId;
+  const name = String(fd.get("name") || "").trim();
+  const link = String(fd.get("link") || "").trim();
+  const width_cm = Number(fd.get("width_cm"));
+  const length_cm = Number(fd.get("length_cm"));
+  const qty = Number(fd.get("qty") || 1);
+  const source = String(fd.get("source") || "new");
+  const genre = String(fd.get("genre") || "stack");
+  const note = String(fd.get("note") || "").trim();
+  const by = String(fd.get("by") || authorName()).trim();
+  const file = el.addMachineImage?.files?.[0];
+  if (!isEdit && !file) {
+    flash("画像を選んでください");
+    return;
+  }
+  const btn = el.addMachineSubmit || form.querySelector('button[type="submit"]');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = isEdit ? "保存中…" : "登録中…";
+  }
+  try {
+    flash(isEdit ? "変更を保存中…" : "登録中…");
+    const imageBase64 = file ? await compressImageForUpload(file) : undefined;
+    const res = await fetch(MACHINE_ADD_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: isEdit ? "update" : "create",
+        id: editId || undefined,
+        name,
+        link,
+        width_cm,
+        length_cm,
+        qty,
+        source,
+        genre,
+        note,
+        by,
+        ...(imageBase64 ? { imageBase64 } : {}),
+      }),
+    });
+    let json = {};
+    try {
+      json = await res.json();
+    } catch {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    if (!res.ok || !json.ok) throw new Error(json.error || `HTTP ${res.status}`);
+    closeAddMachineModal();
+    const centers = isEdit ? snapshotPlacementCenters() : null;
+    await loadCatalog();
+    if (centers) restorePlacementCenters(centers);
+    if (isEdit && json.machine) {
+      state.source = json.machine.source === "existing" ? "existing" : "new";
+      state.filter = json.machine.genre || state.filter;
+      el.sourceFilters?.querySelectorAll(".chip").forEach((c) => {
+        c.classList.toggle("active", c.dataset.source === state.source);
+      });
+      el.filters?.querySelectorAll(".chip").forEach((c) => {
+        c.classList.toggle("active", c.dataset.genre === state.filter);
+      });
+    }
+    state.paletteFocusId = json.machine?.id || editId || state.paletteFocusId;
+    renderPalette();
+    renderMachines();
+    if (isEdit) markDirty();
+    updateChrome();
+    if (json.sheetWarning) {
+      flash(isEdit ? "変更を反映（配置維持・中心固定）" : "追加しました（スプシ同期は遅延の可能性）");
+    } else {
+      flash(isEdit ? `変更しました（配置維持）: ${json.machine?.name || name}` : `追加しました: ${json.machine?.name || name}`);
+    }
+  } catch (err) {
+    console.error(err);
+    flash(`${isEdit ? "変更" : "追加"}失敗: ${err.message || err}`);
+    alert(`マシン${isEdit ? "変更" : "追加"}に失敗しました\n${err.message || err}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = isEdit ? "変更を保存" : "登録する";
+    }
+  }
+}
+
 async function loadCatalog() {
   // 本番: 既存マシンシート直結。失敗時はローカルCSVへフォールバック
   try {
-    const res = await fetch(MACHINES_API, { cache: "no-store" });
+    const res = await fetch(`${MACHINES_API}?t=${Date.now()}`, { cache: "no-store" });
     const json = await res.json();
     if (res.ok && json.ok && Array.isArray(json.machines) && json.machines.length) {
       state.catalog = json.machines.map((m) => ({
         ...m,
         source: m.source === "new" ? "new" : "existing",
         genre: m.genre || (m.category === "cardio" ? "cardio" : m.category === "freeweight" ? "freeweight" : "stack"),
-        has_art: m.has_art !== false && !!m.place_file,
+        has_art: m.has_art !== false && (!!m.place_url || !!m.place_file),
+        overridden: !!m.overridden,
         place_px_w: m.place_px_w || m.module_width_cm || m.width_cm + DEFAULT_CLEARANCE_CM * 2,
         place_px_h: m.place_px_h || m.module_length_cm || m.length_cm + DEFAULT_CLEARANCE_CM * 2,
         module_width_cm: m.module_width_cm || m.width_cm + DEFAULT_CLEARANCE_CM * 2,
         module_length_cm: m.module_length_cm || m.length_cm + DEFAULT_CLEARANCE_CM * 2,
         place_file: m.place_file || (m.source === "new" ? "" : `${m.id}_place.png`),
         preview_file: m.preview_file || (m.source === "new" ? "" : `${m.id}_preview.png`),
+        place_url: m.place_url || "",
+        preview_url: m.preview_url || "",
         link: m.link || "",
       }));
       return {
@@ -2970,6 +3329,22 @@ async function init() {
     placeFreeTextAt(clientToPlan(e.clientX, e.clientY));
   });
   initZoneColors();
+
+  el.btnAddMachine?.addEventListener("click", () => openAddMachineModal());
+  el.btnEditMachine?.addEventListener("click", () => openEditMachineModal());
+  el.addMachineCancel?.addEventListener("click", () => closeAddMachineModal());
+  el.addMachineModal?.addEventListener("click", (ev) => {
+    if (ev.target === el.addMachineModal) closeAddMachineModal();
+  });
+  el.addMachineForm?.addEventListener("submit", (ev) => {
+    submitAddMachine(ev).catch(console.error);
+  });
+  el.addMachineImage?.addEventListener("change", () => {
+    const file = el.addMachineImage.files?.[0];
+    if (!file || !el.addMachinePreview) return;
+    el.addMachinePreview.hidden = false;
+    el.addMachinePreview.src = URL.createObjectURL(file);
+  });
 
   await loadCloud(true).catch((err) => {
     console.error(err);

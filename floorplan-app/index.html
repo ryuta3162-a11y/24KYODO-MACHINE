@@ -12,16 +12,21 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <strong id="brand-title">経堂 2F</strong>
-      <select id="floor-select" class="floor-select" title="フロア切替" aria-label="フロア切替">
-        <option value="kyodo-2f">2F</option>
-        <option value="kyodo-3f">3F</option>
+      <strong id="brand-title">経堂 2F A</strong>
+      <select id="floor-select" class="floor-select" title="フロア・パターン切替" aria-label="フロア・パターン切替">
+        <option value="kyodo-2f">2階A</option>
+        <option value="kyodo-2f-b">2階B</option>
+        <option value="kyodo-2f-c">2階C</option>
+        <option value="kyodo-3f">3階A</option>
+        <option value="kyodo-3f-b">3階B</option>
+        <option value="kyodo-3f-c">3階C</option>
       </select>
       <input id="author" class="author" type="text" maxlength="40" placeholder="名前" />
     </div>
     <div class="actions">
       <button type="button" id="btn-rotate" class="btn" disabled>回転</button>
       <button type="button" id="btn-lock" class="btn" disabled title="選択したマシンの位置を固定／解除">ロック</button>
+      <button type="button" id="btn-edit-machine" class="btn" disabled title="選択したマシンのサイズ・内容を変更（配置は維持）">変更</button>
       <button type="button" id="btn-save" class="btn primary">保存</button>
     </div>
   </header>
@@ -53,8 +58,10 @@
         <button type="button" class="chip active" data-source="existing">既存</button>
         <button type="button" class="chip" data-source="new">新規</button>
       </div>
+      <button type="button" id="btn-add-machine" class="btn add-machine-btn">＋ マシン追加</button>
       <div class="filters" id="filters">
         <button type="button" class="chip active" data-genre="all">すべて</button>
+        <button type="button" class="chip" data-genre="web">WEB追加</button>
         <button type="button" class="chip" data-genre="cardio">有酸素</button>
         <button type="button" class="chip" data-genre="stack">レジスタンス</button>
         <button type="button" class="chip" data-genre="plate">PL</button>
@@ -92,6 +99,76 @@
     <a id="status-link" class="status-link" hidden target="_blank" rel="noopener noreferrer"></a>
   </footer>
 
+  <div id="add-machine-modal" class="add-machine-modal" hidden>
+    <div class="add-machine-card" role="dialog" aria-modal="true" aria-labelledby="add-machine-title">
+      <h2 id="add-machine-title">マシン追加</h2>
+      <p class="add-machine-lead" id="add-machine-lead">スプレッドシート「追加マシン」に保存され、すぐ配置一覧に反映されます。</p>
+      <form id="add-machine-form" class="add-machine-form">
+        <input type="hidden" name="edit_id" id="add-machine-edit-id" value="" />
+        <label class="add-field">
+          名称 <span class="req">必須</span>
+          <input name="name" type="text" maxlength="120" required placeholder="例: レッグプレス" />
+        </label>
+        <label class="add-field">
+          商品URL
+          <input name="link" type="url" maxlength="500" placeholder="https://..." />
+        </label>
+        <div class="add-row">
+          <label class="add-field">
+            幅 cm <span class="req">必須</span>
+            <input name="width_cm" type="number" min="10" max="9999" required />
+          </label>
+          <label class="add-field">
+            奥行 cm <span class="req">必須</span>
+            <input name="length_cm" type="number" min="10" max="9999" required />
+          </label>
+          <label class="add-field">
+            台数
+            <input name="qty" type="number" min="1" max="99" value="1" />
+          </label>
+        </div>
+        <div class="add-row">
+          <label class="add-field">
+            区分
+            <select name="source">
+              <option value="new">新規マシン</option>
+              <option value="existing">既存マシン</option>
+            </select>
+          </label>
+          <label class="add-field">
+            ジャンル
+            <select name="genre">
+              <option value="stack">レジスタンス</option>
+              <option value="freeweight">FW</option>
+              <option value="plate">PL</option>
+              <option value="cardio">有酸素</option>
+              <option value="hyrox">HYROX</option>
+              <option value="pilates">ピラティス</option>
+            </select>
+          </label>
+        </div>
+        <label class="add-field">
+          マシン画像 <span class="req" id="add-machine-image-req">必須</span>
+          <input id="add-machine-image" name="image" type="file" accept="image/*" required />
+          <span class="add-hint" id="add-machine-image-hint" hidden>変更時は空欄のままなら画像を維持します</span>
+        </label>
+        <img id="add-machine-preview" class="add-machine-preview" alt="" hidden />
+        <label class="add-field">
+          登録者
+          <input id="add-machine-by" name="by" type="text" maxlength="40" placeholder="名前" />
+        </label>
+        <label class="add-field">
+          備考
+          <input name="note" type="text" maxlength="200" placeholder="任意" />
+        </label>
+        <div class="add-machine-actions">
+          <button type="button" id="add-machine-cancel" class="btn">キャンセル</button>
+          <button type="submit" class="btn primary" id="add-machine-submit">登録する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="conflict-modal" class="conflict-modal" hidden>
     <div class="conflict-card" role="dialog" aria-modal="true" aria-labelledby="conflict-title">
       <h2 id="conflict-title">保存の競合</h2>
@@ -104,6 +181,6 @@
     </div>
   </div>
 
-  <script type="module" src="./app.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
