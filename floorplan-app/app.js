@@ -3262,8 +3262,8 @@ function setMachineModalMode(mode, machine = null) {
   if (el.addMachineTitle) el.addMachineTitle.textContent = isEdit ? "マシン変更" : "マシン追加";
   if (el.addMachineLead) {
     el.addMachineLead.textContent = isEdit
-      ? "IDはそのまま。配置済みマシンは消えず、サイズ・名称などが更新されます。"
-      : "スプレッドシート「追加マシン」に保存され、すぐ配置一覧に反映されます。";
+      ? "IDはそのまま。配置済みマシンは消えず、サイズ・名称などが更新されます。シート「追加マシン」の控えも更新します。"
+      : "図面アプリにすぐ反映します。スプレッドシート「追加マシン」にも控えを残します（シート側が失敗しても登録は完了します）。";
   }
   if (el.addMachineEditId) el.addMachineEditId.value = isEdit ? machine?.id || "" : "";
   if (el.addMachineImage) el.addMachineImage.required = !isEdit;
@@ -3449,10 +3449,12 @@ async function submitAddMachine(e) {
     updateChrome();
 
     if (isEdit) {
-      const msg = `サイズを変更しました（${width_cm}×${length_cm}cm・配置維持）`;
+      const msg = json.sheetWarning
+        ? `サイズを変更しました（${width_cm}×${length_cm}cm・配置維持）。シート控えは後で確認してください`
+        : `サイズを変更しました（${width_cm}×${length_cm}cm・配置維持）`;
       showEditSuccessToast(msg);
     } else if (json.sheetWarning) {
-      showEditSuccessToast(`追加しました: ${json.machine?.name || name}`);
+      showEditSuccessToast(`追加しました: ${json.machine?.name || name}（図面OK。シート控えは失敗）`);
     } else {
       showEditSuccessToast(`追加しました: ${json.machine?.name || name}`);
     }

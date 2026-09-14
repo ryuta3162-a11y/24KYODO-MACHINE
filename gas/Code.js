@@ -5,6 +5,31 @@
 var SHEET_ID = '1YR4UNjOHT-AManewnSOEPxuR01kBVwXfgoCAjDsPeOw';
 var SHEET_NAME = '既存マシン';
 var NEW_SHEET_NAME = '新マシン';
+var EXTRA_SHEET_NAME = '追加マシン';
+var EXTRA_HEADERS = [
+  'マシンID',
+  '登録日時',
+  '登録者',
+  '名称',
+  '商品URL',
+  '幅_cm',
+  '奥行_cm',
+  '区分',
+  'ジャンル',
+  '台数',
+  '図面対象',
+  'place_url',
+  'preview_url',
+  '備考'
+];
+var GENRE_JP = {
+  stack: 'スタック',
+  plate: 'プレート',
+  freeweight: 'フリーウェイト',
+  cardio: '有酸素',
+  hyrox: 'HYROX',
+  pilates: 'ピラティス'
+};
 var CLEARANCE_CM = 80;
 var CAT_MAP = {
   '有酸素': 'cardio',
@@ -22,6 +47,22 @@ function doGet(e) {
     if (op === 'remove-hyrox') {
       var removedMsg = removeHyroxFromNewMachines();
       return json_({ ok: true, op: op, message: removedMsg, at: new Date().toISOString() });
+    }
+    if (op === 'upsert-extra-machine') {
+      var payload = {};
+      try {
+        payload = JSON.parse((e.parameter && e.parameter.payload) || '{}');
+      } catch (parseErr) {
+        throw new Error('invalid payload');
+      }
+      var upserted = upsertExtraMachine_(payload);
+      return json_({
+        ok: true,
+        op: op,
+        action: upserted.action,
+        message: upserted.message,
+        at: new Date().toISOString()
+      });
     }
     var machines = getExistingMachines_();
     return json_({
@@ -133,6 +174,114 @@ function mmToCm_(mm) {
 
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var body = {};
+    if (e && e.postData && e.postData.contents) {
+      body = JSON.parse(e.postData.contents);
+    }
+    var op = String((body && body.op) || (e && e.parameter && e.parameter.op) || '');
+    if (op === 'upsert-extra-machine') {
+      var upserted = upsertExtraMachine_(body.machine || body);
+      return json_({
+        ok: true,
+        op: op,
+        action: upserted.action,
+        message: upserted.message,
+        at: new Date().toISOString()
+      });
+    }
+    return json_({ ok: false, error: 'unknown op' });
+  } catch (err) {
+    return json_({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+}
+
+function ensureExtraSheet_(ss) {
+  var sh = ss.getSheetByName(EXTRA_SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(EXTRA_SHEET_NAME);
+    sh.getRange(1, 1, 1, EXTRA_HEADERS.length).setValues([EXTRA_HEADERS]);
+    sh.setFrozenRows(1);
+    return sh;
+  }
+  var first = String(sh.getRange(1, 1).getDisplayValue() || '').trim();
+  if (!first) {
+    sh.getRange(1, 1, 1, EXTRA_HEADERS.length).setValues([EXTRA_HEADERS]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function extraColIndex_(sh) {
+  var lastCol = Math.max(sh.getLastColumn(), EXTRA_HEADERS.length);
+  var header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  var idx = {};
+  for (var i = 0; i < header.length; i++) {
+    var key = String(header[i] || '').trim();
+    if (key) idx[key] = i;
+  }
+  return idx;
+}
+
+function upsertExtraMachine_(m) {
+  m = m || {};
+  var id = String(m.id || '').trim();
+  if (!id) throw new Error('id required');
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ensureExtraSheet_(ss);
+  var idx = extraColIndex_(sh);
+  if (idx['マシンID'] == null) {
+    sh.getRange(1, 1, 1, EXTRA_HEADERS.length).setValues([EXTRA_HEADERS]);
+    idx = extraColIndex_(sh);
+  }
+  var idCol = idx['マシンID'];
+  var lastRow = sh.getLastRow();
+  var found = 0;
+  if (lastRow >= 2 && idCol != null) {
+    var ids = sh.getRange(2, idCol + 1, lastRow - 1, 1).getDisplayValues();
+    for (var i = 0; i < ids.length; i++) {
+      if (String(ids[i][0] || '').trim() === id) {
+        found = i + 2;
+        break;
+      }
+    }
+  }
+  var now = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss');
+  var registeredAt = now;
+  if (found && idx['登録日時'] != null) {
+    var prev = String(sh.getRange(found, idx['登録日時'] + 1).getDisplayValue() || '').trim();
+    if (prev) registeredAt = prev;
+  }
+  var genre = String(m.genre || '');
+  var genreJp = GENRE_JP[genre] || genre;
+  var kubun = m.source === 'existing' ? '既存' : '新規';
+  var row = found || Math.max(lastRow, 1) + 1;
+  function setCell_(key, val) {
+    if (idx[key] == null) return;
+    sh.getRange(row, idx[key] + 1).setValue(val);
+  }
+  setCell_('マシンID', id);
+  setCell_('登録日時', registeredAt);
+  setCell_('登録者', String(m.by || ''));
+  setCell_('名称', String(m.name || ''));
+  setCell_('商品URL', String(m.link || ''));
+  setCell_('幅_cm', Number(m.width_cm) || '');
+  setCell_('奥行_cm', Number(m.length_cm) || '');
+  setCell_('区分', kubun);
+  setCell_('ジャンル', genreJp);
+  setCell_('台数', Number(m.qty) || 1);
+  setCell_('図面対象', String(m.planTarget || 'YES'));
+  setCell_('place_url', String(m.place_url || ''));
+  setCell_('preview_url', String(m.preview_url || ''));
+  setCell_('備考', String(m.note || ''));
+  SpreadsheetApp.flush();
+  return {
+    action: found ? 'updated' : 'appended',
+    message: (found ? 'updated ' : 'appended ') + id
+  };
 }
 
 /** clasp / 手動確認用 */

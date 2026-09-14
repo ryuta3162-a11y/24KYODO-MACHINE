@@ -12,6 +12,56 @@ import {
 } from "./customMachines.js";
 
 const ALLOWED_GENRES = new Set(["stack", "plate", "freeweight", "cardio", "hyrox", "pilates"]);
+const GAS_UPSERT_URL =
+  process.env.GAS_MACHINE_UPSERT_URL ||
+  "https://script.google.com/macros/s/AKfycbw7L7epmdDMcrY2PooWjq3EUAkELSHMC6vj93-xLLZ_7RGJxOysAxlBxRyt9uCErxfO/exec";
+const APP_ORIGIN = String(process.env.APP_ORIGIN || "https://24kyodo-machine.vercel.app").replace(/\/$/, "");
+
+function absUrl(path) {
+  const value = String(path || "");
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${APP_ORIGIN}${value.startsWith("/") ? value : `/${value}`}`;
+}
+
+async function syncExtraToSheet(machine) {
+  if (!String(machine?.id || "").startsWith("extra_")) return { ok: true, skipped: true };
+  const payload = {
+    id: machine.id,
+    name: machine.name,
+    link: machine.link,
+    note: machine.note,
+    by: machine.by,
+    width_cm: machine.width_cm,
+    length_cm: machine.length_cm,
+    qty: machine.qty,
+    source: machine.source,
+    genre: machine.genre,
+    planTarget: machine.planTarget || "YES",
+    place_url: absUrl(machine.place_url),
+    preview_url: absUrl(machine.preview_url),
+  };
+  const url = new URL(GAS_UPSERT_URL);
+  url.searchParams.set("op", "upsert-extra-machine");
+  url.searchParams.set("payload", JSON.stringify(payload));
+  const res = await fetch(url.toString(), {
+    method: "GET",
+    redirect: "follow",
+    signal: AbortSignal.timeout(10000),
+  });
+  const text = await res.text();
+  let json = null;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    json = null;
+  }
+  if (!res.ok || !json?.ok || json.op !== "upsert-extra-machine") {
+    console.warn("sheet sync failed", res.status, String(text).slice(0, 400));
+    return { ok: false };
+  }
+  return { ok: true, action: json.action };
+}
 
 function bad(res, code, message) {
   return res.status(code).json({ ok: false, error: message });
@@ -162,10 +212,18 @@ export default async function handler(req, res) {
 
     await writeCustomCatalog(catalog);
 
+    let sheetOk = true;
+    try {
+      const sync = await syncExtraToSheet(machine);
+      sheetOk = !!sync.ok;
+    } catch (syncErr) {
+      console.warn("sheet sync error", syncErr);
+      sheetOk = false;
+    }
+
     return res.status(200).json({
       ok: true,
-      // スプシ同期は未接続。Blob が正。UI は sheetWarning で案内可能
-      sheetWarning: true,
+      sheetWarning: !sheetOk,
       machine,
     });
   } catch (err) {
