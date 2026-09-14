@@ -764,6 +764,24 @@ html, body {
   border-color: rgba(229, 62, 62, 0.45);
 }
 
+.machine-new-badge {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  z-index: 6;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+  pointer-events: none;
+  letter-spacing: 0;
+}
 .machine.locked {
   outline: 2px solid rgba(229, 62, 62, 0.85);
   outline-offset: -1px;

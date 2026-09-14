@@ -911,6 +911,10 @@ function isWebExtra(m) {
   return String(m?.id || "").startsWith("extra_") || m?.status === "WEB追加";
 }
 
+function isNewMachine(m) {
+  return machineSource(m) === "new" || isWebExtra(m);
+}
+
 /** 変更対象ID: 図面上で1台選択 > パレットフォーカス */
 function editableMachineId() {
   const sels = selectedItems();
@@ -969,15 +973,15 @@ function renderPalette() {
           : m.source === "new" && m.sheet_qty === 0
             ? `検討用 · ${m.width_cm}×${m.length_cm}`
             : `${m.width_cm}×${m.length_cm}（区画${m.module_width_cm}×${m.module_length_cm}）· 残 ${rem}/${m.qty}`;
-      const badge = isWebExtra(m)
-        ? `<span class="card-badge is-new">ニュー</span>`
+      const badge = isNewMachine(m)
+        ? `<span class="card-badge is-new">N</span>`
         : m.overridden
           ? `<span class="card-badge is-edit">編集済</span>`
           : "";
       const focused = state.paletteFocusId === m.id ? " is-focused" : "";
       const exhausted = rem <= 0 ? " is-exhausted" : "";
       return `
-      <div class="card${isWebExtra(m) ? " is-web-extra" : ""}${m.overridden ? " is-overridden" : ""}${focused}${exhausted}" draggable="${rem > 0 ? "true" : "false"}" data-id="${m.id}">
+      <div class="card${isNewMachine(m) ? " is-web-extra" : ""}${m.overridden ? " is-overridden" : ""}${focused}${exhausted}" draggable="${rem > 0 ? "true" : "false"}" data-id="${m.id}">
         ${badge}
         ${thumb}
         <div class="meta">
@@ -1177,6 +1181,13 @@ function renderMachines() {
     node.style.height = `${item.trimmed ? body.bh : body.mh}px`;
     node.style.transform = `rotate(${item.rot || 0}deg)`;
     node.style.transformOrigin = "center center";
+    if (m && isNewMachine(m)) {
+      const newBadge = document.createElement("span");
+      newBadge.className = "machine-new-badge";
+      newBadge.textContent = "N";
+      newBadge.title = "新規マシン";
+      node.appendChild(newBadge);
+    }
     if (item.locked) {
       const lockBadge = document.createElement("span");
       lockBadge.className = "machine-lock-badge";
