@@ -1,10 +1,11 @@
 import { displayExisting, displayNew, DUMBBELL_AREA_MACHINES, EXISTING_NAME_OVERRIDE } from "./displayNames.js";
 import { CURATED_RESISTANCE_MACHINES, SKIP_NEW_SHEET_NAMES } from "./curatedResistance.js";
+import { readCustomCatalog, withArtUrls, buildSized, CLEARANCE_CM as CUSTOM_CLEARANCE } from "./customMachines.js";
 
 const SHEET_ID = "1YR4UNjOHT-AManewnSOEPxuR01kBVwXfgoCAjDsPeOw";
 const EXISTING_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("既存マシン")}`;
 const NEW_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("新マシン")}`;
-const CLEARANCE_CM = 80;
+const CLEARANCE_CM = CUSTOM_CLEARANCE || 80;
 
 const CAT_MAP = {
   有酸素: "cardio",
@@ -560,6 +561,85 @@ function cors(res) {
   res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
 }
 
+function applyOverride(base, ov) {
+  if (!ov || typeof ov !== "object") return base;
+  const width_cm = Number(ov.width_cm);
+  const length_cm = Number(ov.length_cm);
+  const sized =
+    Number.isFinite(width_cm) && width_cm >= 10 && Number.isFinite(length_cm) && length_cm >= 10
+      ? buildSized(width_cm, length_cm)
+      : {
+          width_cm: base.width_cm,
+          length_cm: base.length_cm,
+          clearance_cm: base.clearance_cm ?? CLEARANCE_CM,
+          module_width_cm: base.module_width_cm,
+          module_length_cm: base.module_length_cm,
+          place_px_w: base.place_px_w,
+          place_px_h: base.place_px_h,
+        };
+  const qty = Number(ov.qty);
+  const merged = {
+    ...base,
+    name: String(ov.name || base.name || "").trim() || base.name,
+    link: ov.link != null ? String(ov.link) : base.link,
+    note: ov.note != null ? String(ov.note) : base.note,
+    genre: ov.genre || base.genre,
+    source: ov.source === "existing" || ov.source === "new" ? ov.source : base.source,
+    category: ov.category || base.category,
+    qty: Number.isFinite(qty) && qty > 0 ? qty : base.qty,
+    ...sized,
+    overridden: true,
+    status: ov.status || base.status || "寸法上書き",
+  };
+  if (ov.place_path || ov.place_file || ov.preview_path || ov.preview_file) {
+    return withArtUrls(
+      {
+        ...merged,
+        place_file: ov.place_file || merged.place_file,
+        preview_file: ov.preview_file || merged.preview_file,
+        place_path: ov.place_path || "",
+        preview_path: ov.preview_path || "",
+        has_art: true,
+      },
+      ov.updatedAt || Date.now()
+    );
+  }
+  return merged;
+}
+
+function mergeCustomCatalog(machines, catalog) {
+  const overrides = catalog?.overrides && typeof catalog.overrides === "object" ? catalog.overrides : {};
+  const extras = Array.isArray(catalog?.extras) ? catalog.extras : [];
+  const used = new Set(machines.map((m) => m.id));
+  let overrideCount = 0;
+  const merged = machines.map((m) => {
+    const ov = overrides[m.id];
+    if (!ov) return m;
+    overrideCount += 1;
+    return applyOverride(m, ov);
+  });
+  const extraMachines = [];
+  for (const ex of extras) {
+    if (!ex?.id || used.has(ex.id)) continue;
+    used.add(ex.id);
+    extraMachines.push(
+      withArtUrls(
+        {
+          ...ex,
+          status: ex.status || "WEB追加",
+          has_art: ex.has_art !== false,
+        },
+        ex.updatedAt || Date.now()
+      )
+    );
+  }
+  return {
+    machines: [...merged, ...extraMachines],
+    overrideCount,
+    extraCount: extraMachines.length,
+  };
+}
+
 export default async function handler(req, res) {
   cors(res);
   if (req.method === "OPTIONS") return res.status(204).end();
@@ -575,14 +655,18 @@ export default async function handler(req, res) {
     } catch (err) {
       console.warn("new machines fetch failed", err);
     }
-    const machines = [...existing, ...dumbbellAreas, ...curated, ...neu];
+    const baseMachines = [...existing, ...dumbbellAreas, ...curated, ...neu];
+    const catalog = await readCustomCatalog();
+    const { machines, overrideCount, extraCount } = mergeCustomCatalog(baseMachines, catalog);
     return res.status(200).json({
       ok: true,
-      source: "sheet:既存+新マシン+ダンベルエリア+採用レジスタンス",
+      source: "sheet:既存+新マシン+ダンベルエリア+採用レジスタンス+WEB追加",
       syncedAt: new Date().toISOString(),
       count: machines.length,
       existingCount: existing.length + dumbbellAreas.length,
       newCount: curated.length + neu.length,
+      extraCount,
+      overrideCount,
       genres: GENRE,
       machines,
     });
