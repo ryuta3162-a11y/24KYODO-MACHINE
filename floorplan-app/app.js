@@ -1131,7 +1131,7 @@ function renderMachines() {
       lockBadge.addEventListener("pointerdown", (ev) => {
         ev.preventDefault();
         ev.stopPropagation();
-        setItemsLockedSafe([item.uid], false);
+        setSelectionLocked(false, { itemUids: [item.uid], zoneUids: [] });
       });
       node.appendChild(lockBadge);
     }
@@ -1349,12 +1349,12 @@ function initZoneColors() {
 }
 
 function renderZoneNode(z, { draft = false } = {}) {
-  const editing = !draft && state.zoneEditUid === z.uid;
+  const editing = !draft && state.zoneEditUid === z.uid && !z.locked;
   const selected = !draft && state.selectedZoneUids.has(z.uid);
   const node = document.createElement("div");
   node.className = `zone-shape ${z.type}${draft ? " draft" : ""}${selected ? " selected" : ""}${
     editing ? " is-editing" : ""
-  }`;
+  }${z.locked ? " locked" : ""}`;
   if (z.type === "text") {
     node.style.left = `${z.x}px`;
     node.style.top = `${z.y}px`;
@@ -1394,10 +1394,25 @@ function renderZoneNode(z, { draft = false } = {}) {
     node.appendChild(label);
   }
 
+  if (!draft && z.locked) {
+    const badge = document.createElement("span");
+    badge.className = "zone-lock-badge";
+    badge.textContent = "鍵";
+    badge.title = "クリックでロック解除";
+    badge.addEventListener("pointerdown", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      setSelectionLocked(false, { itemUids: [], zoneUids: [z.uid] });
+    });
+    node.appendChild(badge);
+  }
+
   if (!draft) {
     node.dataset.uid = z.uid;
-    node.title =
-      z.type === "text"
+    if (z.locked) node.dataset.locked = "1";
+    node.title = z.locked
+      ? `${z.label || "区画"}（ロック中）`
+      : z.type === "text"
         ? "ドラッグで移動 / Deleteで削除"
         : editing
           ? "ハンドルでサイズ調整 / 文字をドラッグで移動"
@@ -1455,9 +1470,19 @@ function onZonePointerDown(e) {
   if (e.target.closest(".zone-handle")) return;
   // 色付きゾーンのラベルは別ハンドラ。文字ゾーンはラベル自体を掴む
   if (e.target.closest(".zone-label-text") && z0?.type !== "text") return;
+  if (e.target.closest(".zone-lock-badge")) return;
   e.preventDefault();
   e.stopPropagation();
   selectZone(uidVal, { additive: e.shiftKey || e.ctrlKey || e.metaKey });
+  // ロック中は選択のみ（移動・変形しない）
+  if (z0?.locked) {
+    clearZoneEdit();
+    flash("ロック中");
+    renderZones();
+    renderMachines();
+    updateChrome();
+    return;
+  }
   // シングル選択ならすぐ編集ハンドル＋移動できるようにする
   if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
     state.zoneEditUid = uidVal;
@@ -1490,6 +1515,10 @@ function onZoneHandlePointerDown(e, uidVal, handle) {
   e.stopPropagation();
   const z = state.zones.find((x) => x.uid === uidVal);
   if (!z) return;
+  if (z.locked) {
+    flash("ロック中");
+    return;
+  }
   pushUndo();
   const plan = clientToPlan(e.clientX, e.clientY);
   state.zoneTapCandidate = null;
@@ -1512,6 +1541,14 @@ function onZoneLabelPointerDown(e, uidVal) {
   selectZone(uidVal);
   const z = state.zones.find((x) => x.uid === uidVal);
   if (!z) return;
+  if (z.locked) {
+    clearZoneEdit();
+    flash("ロック中");
+    renderZones();
+    renderMachines();
+    updateChrome();
+    return;
+  }
   const plan = clientToPlan(e.clientX, e.clientY);
   state.zoneLabelDrag = {
     uid: uidVal,
@@ -1529,6 +1566,14 @@ function onZoneLabelPointerDown(e, uidVal) {
 }
 
 function enterZoneEdit(uidVal) {
+  const z0 = state.zones.find((x) => x.uid === uidVal);
+  if (z0?.locked) {
+    flash("ロック中");
+    selectZone(uidVal);
+    renderZones();
+    updateChrome();
+    return;
+  }
   state.zoneEditUid = uidVal;
   state.selectedZoneUids = new Set([uidVal]);
   state.selectedUids = new Set();
@@ -1576,6 +1621,7 @@ function finalizeZoneDraft() {
           flipX: false,
           flipY: false,
           vertical: false,
+          locked: false,
         }
       : {
           uid: uid(),
@@ -1591,6 +1637,7 @@ function finalizeZoneDraft() {
           flipX: false,
           flipY: false,
           vertical: false,
+          locked: false,
         };
   state.zones.push(zone);
   state.selectedZoneUids = new Set([zone.uid]);
@@ -1608,11 +1655,15 @@ function finalizeZoneDraft() {
 function applyZoneLabelFromInput() {
   const label = zoneLabelText();
   if (!state.selectedZoneUids.size) return;
-  pushUndo();
-  for (const z of state.zones) {
-    if (!state.selectedZoneUids.has(z.uid) || z.type === "text") continue;
-    z.label = label;
+  const targets = state.zones.filter(
+    (z) => state.selectedZoneUids.has(z.uid) && z.type !== "text" && !z.locked
+  );
+  if (!targets.length) {
+    if (selectedZones().some((z) => z.locked)) flash("ロック中");
+    return;
   }
+  pushUndo();
+  for (const z of targets) z.label = label;
   renderZones();
   markDirty();
 }
@@ -1653,6 +1704,7 @@ function placeFreeTextAt(plan) {
     flipX: false,
     flipY: false,
     vertical: false,
+    locked: false,
   };
   state.zones.push(zone);
   state.selectedUids = new Set();
@@ -1667,10 +1719,13 @@ function placeFreeTextAt(plan) {
 
 function toggleSelectedZonesVertical() {
   if (!state.selectedZoneUids.size) return;
-  pushUndo();
-  for (const z of state.zones) {
-    if (state.selectedZoneUids.has(z.uid)) z.vertical = !z.vertical;
+  const targets = state.zones.filter((z) => state.selectedZoneUids.has(z.uid) && !z.locked);
+  if (!targets.length) {
+    flash("ロック中");
+    return;
   }
+  pushUndo();
+  for (const z of targets) z.vertical = !z.vertical;
   renderZones();
   updateChrome();
   markDirty();
@@ -1678,9 +1733,13 @@ function toggleSelectedZonesVertical() {
 
 function flipSelectedZones(axis) {
   if (!state.selectedZoneUids.size) return;
+  const targets = state.zones.filter((z) => state.selectedZoneUids.has(z.uid) && !z.locked);
+  if (!targets.length) {
+    flash("ロック中");
+    return;
+  }
   pushUndo();
-  for (const z of state.zones) {
-    if (!state.selectedZoneUids.has(z.uid)) continue;
+  for (const z of targets) {
     if (axis === "x") z.flipX = !z.flipX;
     if (axis === "y") z.flipY = !z.flipY;
   }
@@ -1790,16 +1849,18 @@ function updateChrome() {
     }
   }
   const has = sels.length > 0;
-  const hasUnlocked = sels.some((it) => !it.locked);
-  const allLocked = has && sels.every((it) => it.locked);
   const hasZone = zsels.length > 0;
-  if (el.btnRotate) el.btnRotate.disabled = !hasUnlocked;
+  const lockTargets = [...sels, ...zsels];
+  const hasLockTarget = lockTargets.length > 0;
+  const allLocked = hasLockTarget && lockTargets.every((it) => it.locked);
+  const hasUnlockedMachine = sels.some((it) => !it.locked);
+  if (el.btnRotate) el.btnRotate.disabled = !hasUnlockedMachine;
   if (el.btnLock) {
-    el.btnLock.disabled = !has;
+    el.btnLock.disabled = !hasLockTarget;
     el.btnLock.textContent = allLocked ? "ロック解除" : "ロック";
     el.btnLock.title = allLocked
       ? "選択中の位置固定を解除"
-      : "選択中の位置を固定（動かない）";
+      : "選択中のマシン／区画を固定（動かない）";
     el.btnLock.classList.toggle("is-locked", allLocked);
   }
   if (el.btnEditMachine) {
@@ -1809,9 +1870,15 @@ function updateChrome() {
       ? `「${findMachine(editId)?.name || editId}」のサイズ・内容を変更（配置は維持）`
       : "マシンを1台選択（またはパレットをクリック）して変更";
   }
-  if (el.btnZoneVertical) el.btnZoneVertical.disabled = !hasZone;
-  if (el.btnZoneFlipX) el.btnZoneFlipX.disabled = !hasZone;
-  if (el.btnZoneFlipY) el.btnZoneFlipY.disabled = !hasZone;
+  if (el.btnZoneVertical) {
+    el.btnZoneVertical.disabled = !hasZone || zsels.every((z) => z.locked);
+  }
+  if (el.btnZoneFlipX) {
+    el.btnZoneFlipX.disabled = !hasZone || zsels.every((z) => z.locked);
+  }
+  if (el.btnZoneFlipY) {
+    el.btnZoneFlipY.disabled = !hasZone || zsels.every((z) => z.locked);
+  }
   if (el.statusRoom) el.statusRoom.textContent = state.roomId;
   renderProductLinkChips();
 }
@@ -1824,15 +1891,59 @@ function renderHistory() {
 
 function toggleLockSelected() {
   const sels = selectedItems();
-  if (!sels.length) {
+  const zsels = state.zones.filter((z) => state.selectedZoneUids.has(z.uid));
+  if (!sels.length && !zsels.length) {
     flash("選択なし");
     return;
   }
-  const unlock = sels.every((it) => it.locked);
-  setItemsLockedSafe(
-    sels.map((it) => it.uid),
-    !unlock
-  );
+  const unlock = [...sels, ...zsels].every((it) => it.locked);
+  setSelectionLocked(!unlock);
+}
+
+function selectedZones() {
+  return state.zones.filter((z) => state.selectedZoneUids.has(z.uid));
+}
+
+function setZonesLockedSafe(uids, locked) {
+  const idSet = new Set(uids);
+  const targets = state.zones.filter((z) => idSet.has(z.uid) && !!z.locked !== !!locked);
+  if (!targets.length) return false;
+  for (const z of targets) z.locked = !!locked;
+  if (locked) {
+    for (const z of targets) {
+      if (state.zoneEditUid === z.uid) clearZoneEdit();
+    }
+  }
+  return true;
+}
+
+function setItemsLockedSafe(uids, locked) {
+  const idSet = new Set(uids);
+  const targets = state.items.filter((it) => idSet.has(it.uid) && !!it.locked !== !!locked);
+  if (!targets.length) return false;
+  for (const item of targets) item.locked = !!locked;
+  return true;
+}
+
+function setSelectionLocked(locked, { itemUids = null, zoneUids = null } = {}) {
+  const iUids = itemUids || selectedItems().map((i) => i.uid);
+  const zUids = zoneUids || selectedZones().map((z) => z.uid);
+  const willChange =
+    state.items.some((it) => iUids.includes(it.uid) && !!it.locked !== !!locked) ||
+    state.zones.some((z) => zUids.includes(z.uid) && !!z.locked !== !!locked);
+  if (!willChange) return;
+  pushUndo();
+  const itemChanged = setItemsLockedSafe(iUids, locked);
+  const zoneChanged = setZonesLockedSafe(zUids, locked);
+  if (!itemChanged && !zoneChanged) {
+    state.undoStack.pop();
+    return;
+  }
+  renderZones();
+  renderMachines();
+  updateChrome();
+  markDirty({ immediate: true });
+  flash(locked ? "ロック" : "ロック解除");
 }
 
 async function fetchRoom() {
@@ -2559,17 +2670,6 @@ function bindDrop() {
   });
 }
 
-function setItemsLockedSafe(uids, locked) {
-  const idSet = new Set(uids);
-  const targets = state.items.filter((it) => idSet.has(it.uid) && !!it.locked !== !!locked);
-  if (!targets.length) return;
-  pushUndo();
-  for (const item of targets) item.locked = !!locked;
-  renderMachines();
-  markDirty({ immediate: true });
-  flash(locked ? "ロック" : "ロック解除");
-}
-
 function hideCtxMenu() {
   document.getElementById("ctx-menu")?.remove();
 }
@@ -2582,6 +2682,7 @@ function showMachineCtxMenu(clientX, clientY, uidVal) {
     state.selectedUids = new Set([uidVal]);
     state.selectedZoneUids = new Set();
     renderMachines();
+    renderZones();
   }
   const menu = document.createElement("div");
   menu.id = "ctx-menu";
@@ -2592,18 +2693,57 @@ function showMachineCtxMenu(clientX, clientY, uidVal) {
     btn.textContent = "ロック解除";
     btn.addEventListener("click", () => {
       hideCtxMenu();
-      setItemsLockedSafe([uidVal], false);
+      setSelectionLocked(false, { itemUids: [uidVal], zoneUids: [] });
     });
   } else {
     btn.textContent = "位置をロック";
     btn.addEventListener("click", () => {
       hideCtxMenu();
       const uids = selectedItems().length ? selectedItems().map((i) => i.uid) : [uidVal];
-      setItemsLockedSafe(uids, true);
+      setSelectionLocked(true, { itemUids: uids, zoneUids: [] });
     });
   }
   menu.appendChild(btn);
   document.body.appendChild(menu);
+  placeCtxMenu(menu, clientX, clientY);
+}
+
+function showZoneCtxMenu(clientX, clientY, uidVal) {
+  hideCtxMenu();
+  const zone = state.zones.find((z) => z.uid === uidVal);
+  if (!zone) return;
+  if (!state.selectedZoneUids.has(uidVal)) {
+    state.selectedZoneUids = new Set([uidVal]);
+    state.selectedUids = new Set();
+    clearZoneEdit();
+    renderZones();
+    renderMachines();
+  }
+  const menu = document.createElement("div");
+  menu.id = "ctx-menu";
+  menu.className = "ctx-menu";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  if (zone.locked) {
+    btn.textContent = "ロック解除";
+    btn.addEventListener("click", () => {
+      hideCtxMenu();
+      setSelectionLocked(false, { itemUids: [], zoneUids: [uidVal] });
+    });
+  } else {
+    btn.textContent = "区画をロック";
+    btn.addEventListener("click", () => {
+      hideCtxMenu();
+      const uids = selectedZones().length ? selectedZones().map((z) => z.uid) : [uidVal];
+      setSelectionLocked(true, { itemUids: [], zoneUids: uids });
+    });
+  }
+  menu.appendChild(btn);
+  document.body.appendChild(menu);
+  placeCtxMenu(menu, clientX, clientY);
+}
+
+function placeCtxMenu(menu, clientX, clientY) {
   const pad = 8;
   const rect = menu.getBoundingClientRect();
   let left = clientX;
@@ -2619,6 +2759,11 @@ function onViewportContextMenu(e) {
   const machine = e.target.closest?.(".machine");
   if (machine?.dataset?.uid) {
     showMachineCtxMenu(e.clientX, e.clientY, machine.dataset.uid);
+    return;
+  }
+  const zone = e.target.closest?.(".zone-shape");
+  if (zone?.dataset?.uid) {
+    showZoneCtxMenu(e.clientX, e.clientY, zone.dataset.uid);
     return;
   }
   hideCtxMenu();

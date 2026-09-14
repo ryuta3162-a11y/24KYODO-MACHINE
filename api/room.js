@@ -105,6 +105,7 @@ function normalizeZones(raw) {
         flipX: !!z.flipX,
         flipY: !!z.flipY,
         vertical: !!z.vertical,
+        locked: !!z.locked,
       };
       if (type === "text") {
         const x = Number(z.x);

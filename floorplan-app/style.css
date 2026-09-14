@@ -198,6 +198,41 @@ html, body {
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
   z-index: 3;
 }
+.zone-shape.locked {
+  outline: 2px solid rgba(229, 62, 62, 0.85);
+  outline-offset: -1px;
+  cursor: default;
+}
+.zone-shape.locked.selected {
+  outline: 3px solid #fc8181;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 2px rgba(229, 62, 62, 0.28);
+}
+.zone-shape.locked.is-editing {
+  outline-color: #c53030;
+}
+.zone-lock-badge {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  z-index: 6;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(17, 17, 17, 0.55);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #c53030;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 20px;
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.zone-lock-badge:hover {
+  background: #fff5f5;
+}
 .zone-shape.is-editing {
   outline: 3px solid #111;
   outline-offset: 0;
