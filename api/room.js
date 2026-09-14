@@ -1,4 +1,4 @@
-import { put, list } from "@vercel/blob";
+import { put, head, BlobNotFoundError, BlobStoreSuspendedError } from "@vercel/blob";
 
 const MAX_HISTORY = 40;
 const PLANS = {
@@ -16,8 +16,8 @@ function cors(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-function bad(res, code, message) {
-  return res.status(code).json({ ok: false, error: message });
+function bad(res, code, message, extra = {}) {
+  return res.status(code).json({ ok: false, error: message, ...extra });
 }
 
 function safeRoomId(raw) {
@@ -33,18 +33,38 @@ function pathnameFor(roomId) {
   return `rooms/${roomId}.json`;
 }
 
+/**
+ * @returns {Promise<{ data: object|null, missing: boolean, suspended: boolean, error: string|null }>}
+ */
 async function readRoom(roomId) {
   const path = pathnameFor(roomId);
-  const listed = await list({ prefix: path, limit: 1 });
-  const blob = listed.blobs.find((b) => b.pathname === path);
-  if (!blob) return null;
-  const res = await fetch(blob.url, {
-    headers: {
-      Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
-    },
-  });
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    // list() は Advanced Operations を消費しやすいので head で存在確認
+    const meta = await head(path);
+    const res = await fetch(meta.url, {
+      headers: {
+        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+      },
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      if (/blocked|suspended/i.test(text)) {
+        return { data: null, missing: false, suspended: true, error: "blob_store_suspended" };
+      }
+      return { data: null, missing: false, suspended: false, error: `blob_read_${res.status}` };
+    }
+    const data = await res.json();
+    return { data, missing: false, suspended: false, error: null };
+  } catch (err) {
+    if (err instanceof BlobNotFoundError || err?.name === "BlobNotFoundError") {
+      return { data: null, missing: true, suspended: false, error: null };
+    }
+    if (err instanceof BlobStoreSuspendedError || err?.name === "BlobStoreSuspendedError" || /suspended|blocked/i.test(String(err?.message || ""))) {
+      return { data: null, missing: false, suspended: true, error: "blob_store_suspended" };
+    }
+    console.error("readRoom failed", err);
+    return { data: null, missing: false, suspended: false, error: err?.message || "blob_read_failed" };
+  }
 }
 
 function emptyRoom(roomId) {
@@ -119,7 +139,16 @@ export default async function handler(req, res) {
     const roomId = safeRoomId(req.query.id || req.query.room || "kyodo-2f");
 
     if (req.method === "GET") {
-      const data = (await readRoom(roomId)) || emptyRoom(roomId);
+      const result = await readRoom(roomId);
+      if (result.suspended) {
+        return bad(res, 503, "blob_store_suspended", {
+          message: "保存ストレージが停止中です。Vercel Blob の課金/ストア状態を確認してください。",
+        });
+      }
+      if (result.error && !result.missing) {
+        return bad(res, 503, result.error, { message: "配置データの読込に失敗しました" });
+      }
+      const data = result.data || emptyRoom(roomId);
       if (!Array.isArray(data.zones)) data.zones = [];
       return res.status(200).json({ ok: true, data });
     }
@@ -138,7 +167,28 @@ export default async function handler(req, res) {
       const now = new Date().toISOString();
       const entryId = crypto.randomUUID();
 
-      const current = (await readRoom(roomId)) || emptyRoom(roomId);
+      const result = await readRoom(roomId);
+      if (result.suspended) {
+        return bad(res, 503, "blob_store_suspended", {
+          message: "保存ストレージが停止中のため保存できません",
+        });
+      }
+      if (result.error && !result.missing) {
+        // 既存データがあるかもしれないのに読めないときは空で上書きしない
+        return bad(res, 503, result.error, {
+          message: "既存配置を確認できないため保存を中止しました",
+        });
+      }
+      const current = result.data || emptyRoom(roomId);
+
+      // 空データでの上書き事故防止（明示クリア以外）
+      const curItems = Array.isArray(current.items) ? current.items.length : 0;
+      const curZones = Array.isArray(current.zones) ? current.zones.length : 0;
+      if (!force && curItems + curZones > 0 && items.length + zones.length === 0 && note !== "クリア") {
+        return bad(res, 400, "refuse_empty_overwrite", {
+          message: "既存配置があるのに空保存は拒否しました",
+        });
+      }
 
       // 版が違う保存は拒否（古いタブの部分上書きを防ぐ）。force のみ上書き可
       if (

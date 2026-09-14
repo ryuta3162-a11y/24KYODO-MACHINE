@@ -1678,8 +1678,13 @@ function toggleLockSelected() {
 
 async function fetchRoom() {
   const res = await fetch(`/api/room?id=${encodeURIComponent(state.roomId)}`, { cache: "no-store" });
-  const json = await res.json();
-  if (!res.ok || !json.ok) throw new Error(json.error || "load failed");
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.ok) {
+    const err = new Error(json.error || "load failed");
+    err.code = json.error;
+    err.messageJa = json.message || "";
+    throw err;
+  }
   return json.data;
 }
 
@@ -1722,11 +1727,23 @@ async function loadCloud(showFlash = true) {
     state.autosaveTimer = null;
   }
   state.dirty = false;
-  const data = await fetchRoom();
-  applyRoomData(data);
-  await refreshPeerCounts();
-  renderPalette();
-  if (showFlash) flash(data.updatedAt ? "最新を表示" : "まだ空です");
+  try {
+    const data = await fetchRoom();
+    applyRoomData(data);
+    await refreshPeerCounts();
+    renderPalette();
+    if (showFlash) flash(data.updatedAt ? "最新を表示" : "まだ空です");
+  } catch (err) {
+    console.error(err);
+    if (err?.code === "blob_store_suspended") {
+      flash("保存ストレージ停止中");
+      showSaveToast(err.messageJa || "Blobストアが停止中です。課金状態を確認してください", { error: true });
+    } else {
+      flash("読込失敗");
+      showSaveToast(err.messageJa || "配置の読込に失敗しました", { error: true });
+    }
+    throw err;
+  }
 }
 
 async function saveCloud({ auto = false, force = false } = {}) {
